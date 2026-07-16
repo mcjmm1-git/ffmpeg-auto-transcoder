@@ -13,12 +13,12 @@ export LC_NUMERIC=C
 ###############################################################################
 # CONFIGURACIÓN
 ###############################################################################
-INPUT="/mnt/dd2/entrada"
-OUTPUT="/mnt/dd2/procesadas"
-JELLYFIN_DIR="/mnt/dd2/jellyfin"
-LOGDIR="/mnt/dd2/logs"
-DONEDIR="/mnt/dd2/terminadas"
-ERRDIR="/mnt/dd2/errores"
+INPUT="${DISCO}/entrada"
+OUTPUT="${DISCO}/procesadas"
+JELLYFIN_DIR="${DISCO}/jellyfin"
+LOGDIR="${DISCO}/logs"
+DONEDIR="${DISCO}/terminadas"
+ERRDIR="${DISCO}/errores"
 
 mkdir -p "$OUTPUT" "$JELLYFIN_DIR" "$LOGDIR" "$DONEDIR" "$ERRDIR"
 
