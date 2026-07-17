@@ -4,8 +4,8 @@
 # Analizador + reescalador a 4K (Acelerado por NVIDIA NVENC GPU)
 ###############################################################################
 source ./config.sh
-source ./lib/tmdb.sh
-source ./lib/omdb.sh
+source "$(dirname "$0")/tmdb.sh"
+source "$(dirname "$0")/omdb.sh"
 set -Eeuo pipefail
 IFS=$'\n\t'
 export LC_NUMERIC=C

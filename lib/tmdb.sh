@@ -8,29 +8,107 @@ tmdb_imdb_id() {
         "https://api.themoviedb.org/3/movie/${TMDB_ID}/external_ids?api_key=${TMDB_API_KEY}"
 }
 
-tmdb_search() {
+###############################################################################
+# NORMALIZAR NOMBRE
+###############################################################################
 
+normalizar_nombre()
+{
     local FILE="$1"
 
-    local NAME
-    NAME=$(basename "$FILE")
+    TITLE=$(basename "$FILE")
+    TITLE="${TITLE%.*}"
 
-    NAME="${NAME%.*}"
+    # Extraer año si existe
+    YEAR=$(printf '%s\n' "$TITLE" |
+        grep -oE '\((18|19|20)[0-9]{2}\)' |
+        tr -d '()')
 
-    NAME=$(echo "$NAME" \
-        | sed -E 's/\[[^]]+\]//g' \
-        | sed -E 's/\([^)]*\)//g' \
-        | sed -E 's/\b(2160p|1080p|720p|480p|x264|x265|h264|h265|HEVC|BluRay|WEBRip|WEB-DL|HDR|DV|REMUX|AAC|DTS|TRUEHD|ATMOS)\b//Ig' \
-        | tr '.' ' ' \
-        | sed 's/  */ /g' \
-        | sed 's/^ *//;s/ *$//')
+    # Eliminar únicamente el año entre paréntesis
+    TITLE=$(printf '%s\n' "$TITLE" |
+        sed -E 's/\((18|19|20)[0-9]{2}\)//g')
 
-NAME=$(echo "$NAME" | sed -E 's/[[:space:]]+(18|19|20)[0-9]{2}$//')
+    # Eliminar etiquetas entre corchetes
+    TITLE=$(printf '%s\n' "$TITLE" |
+        sed -E 's/\[[^]]+\]//g')
 
-    curl -s \
-        --get \
-        --data-urlencode "api_key=${TMDB_API_KEY}" \
-        --data-urlencode "language=es-ES" \
-        --data-urlencode "query=${NAME}" \
-        "https://api.themoviedb.org/3/search/movie"
+    # Sustituir puntos por espacios
+    TITLE=$(printf '%s\n' "$TITLE" |
+        tr '.' ' ')
+
+    # Eliminar etiquetas típicas de ripeos
+    TITLE=$(printf '%s\n' "$TITLE" |
+        awk '
+        {
+            IGNORECASE=1
+
+            gsub(/\<2160p\>/,"")
+            gsub(/\<1080p\>/,"")
+            gsub(/\<720p\>/,"")
+            gsub(/\<480p\>/,"")
+
+            gsub(/\<x264\>/,"")
+            gsub(/\<x265\>/,"")
+            gsub(/\<h264\>/,"")
+            gsub(/\<h265\>/,"")
+
+            gsub(/\<hevc\>/,"")
+            gsub(/\<bluray\>/,"")
+            gsub(/\<bdrip\>/,"")
+            gsub(/\<brrip\>/,"")
+            gsub(/\<web-dl\>/,"")
+            gsub(/\<webrip\>/,"")
+            gsub(/\<hdrip\>/,"")
+            gsub(/\<dvdrip\>/,"")
+            gsub(/\<remux\>/,"")
+            gsub(/\<hdr10\>/,"")
+            gsub(/\<dv\>/,"")
+
+            gsub(/\<aac\>/,"")
+            gsub(/\<ac3\>/,"")
+            gsub(/\<dts\>/,"")
+            gsub(/\<truehd\>/,"")
+            gsub(/\<atmos\>/,"")
+
+            print
+        }')
+
+    # Limpiar espacios
+    TITLE=$(printf '%s\n' "$TITLE" |
+        sed 's/[[:space:]][[:space:]]*/ /g' |
+        sed 's/^ *//;s/ *$//')
 }
+
+###############################################################################
+# BUSCAR EN TMDB
+###############################################################################
+
+tmdb_search()
+{
+    local FILE="$1"
+
+    normalizar_nombre "$FILE"
+
+echo "TMDb -> Título : $TITLE" >&2
+echo "TMDb -> Año    : ${YEAR:-N/D}" >&2
+
+    if [[ -n "$YEAR" ]]
+    then
+        curl -s \
+            --get \
+            --data-urlencode "api_key=${TMDB_API_KEY}" \
+            --data-urlencode "language=es-ES" \
+            --data-urlencode "query=${TITLE}" \
+            --data-urlencode "year=${YEAR}" \
+            "https://api.themoviedb.org/3/search/movie"
+    else
+        curl -s \
+            --get \
+            --data-urlencode "api_key=${TMDB_API_KEY}" \
+            --data-urlencode "language=es-ES" \
+            --data-urlencode "query=${TITLE}" \
+            "https://api.themoviedb.org/3/search/movie"
+    fi
+}
+
+
