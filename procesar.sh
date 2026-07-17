@@ -304,9 +304,9 @@ echo "progress=continue" > "$PROGRESS_FILE"
 EXTRA_FILE="${LOGDIR}/ffmpeg.extra"
 : > "$EXTRA_FILE"
 
-GPU_FILTER="scale_cuda=w=3840:h=2160:force_original_aspect_ratio=decrease:interp_algo=lanczos"
+GPU_FILTER="scale_cuda=w=${TARGET_W}:h=${TARGET_H}:force_original_aspect_ratio=decrease:interp_algo=lanczos"
 
-CPU_FILTER="scale=w=3840:h=2160:force_original_aspect_ratio=decrease:flags=lanczos,pad=w=3840:h=2160:x=(ow-iw)/2:y=(oh-ih)/2"
+CPU_FILTER="scale=w=${TARGET_W}:h=${TARGET_H}:force_original_aspect_ratio=decrease:flags=lanczos,pad=w=${TARGET_W}:h=${TARGET_H}:x=(ow-iw)/2:y=(oh-ih)/2"
 
 FILTRO="$GPU_FILTER"
 
