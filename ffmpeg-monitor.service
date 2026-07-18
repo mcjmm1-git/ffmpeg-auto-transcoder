@@ -1,0 +1,14 @@
+[Unit]
+Description=FFmpeg Monitor Web
+After=network.target
+
+[Service]
+Type=simple
+User=juanma
+WorkingDirectory=/home/juanma/ffmpeg
+ExecStart=/home/juanma/ffmpeg/monitor-web.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
