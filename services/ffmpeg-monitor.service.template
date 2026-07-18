@@ -4,9 +4,9 @@ After=network.target
 
 [Service]
 Type=simple
-User=juanma
-WorkingDirectory=/home/juanma/ffmpeg
-ExecStart=/home/juanma/ffmpeg/monitor-web.sh
+User=__USER__
+WorkingDirectory=__INSTALL_DIR__
+ExecStart=__INSTALL_DIR__/monitor-web.sh
 Restart=always
 RestartSec=5
 

@@ -4,12 +4,11 @@ After=network-online.target
 
 [Service]
 Type=simple
-User=juanma
-WorkingDirectory=/home/juanma/ffmpeg
-ExecStart=/home/juanma/ffmpeg/procesar.sh
+User=__USER__
+WorkingDirectory=__INSTALL_DIR__
+ExecStart=__INSTALL_DIR__/procesar.sh
 Restart=on-failure
 RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
-

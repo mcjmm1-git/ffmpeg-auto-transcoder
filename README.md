@@ -66,8 +66,8 @@ Es necesario disponer de claves API para:
 Copiar los servicios:
 
 ```bash
-sudo cp procesar.service /etc/systemd/system/
-sudo cp ffmpeg-monitor.service /etc/systemd/system/
+sudo cp services/procesar.service.template /etc/systemd/system/procesar.service
+sudo cp services/ffmpeg-monitor.service.template /etc/systemd/system/ffmpeg-monitor.service
 ```
 
 Recargar systemd:
