@@ -1,6 +1,3 @@
-# Claves personales
-config.sh
-
 # Logs
 *.log
 logs/
