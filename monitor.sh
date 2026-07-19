@@ -16,11 +16,8 @@ export LC_NUMERIC=C
 # CONFIGURACIÓN
 ###############################################################################
 
-INPUTDIR="$ENTRADA"
-LOGDIR="$LOGS"
-
-PROGRESS_FILE="$LOGDIR/ffmpeg.progress"
-EXTRA_FILE="$LOGDIR/ffmpeg.extra"
+PROGRESS_FILE="$LOGS/ffmpeg.progress"
+EXTRA_FILE="$LOGS/ffmpeg.extra"
 
 REFRESH=2
 

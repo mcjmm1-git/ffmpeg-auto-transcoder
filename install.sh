@@ -231,15 +231,18 @@ ask_media_directory() {
         echo "Creando estructura de directorios..."
         echo
 
-        mkdir -p \
-            "$MEDIA_DIR/entrada" \
-            "$MEDIA_DIR/jellyfin" \
-            "$MEDIA_DIR/logs" \
-            "$MEDIA_DIR/temp"
+mkdir -p \
+    "$MEDIA_DIR/incoming" \
+    "$MEDIA_DIR/processing" \
+    "$MEDIA_DIR/library" \
+    "$MEDIA_DIR/completed" \
+    "$MEDIA_DIR/failed" \
+    "$MEDIA_DIR/logs" \
+    "$MEDIA_DIR/temp"
 
-        break
+break
 
-    done
+done
 
 }
 

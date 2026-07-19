@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
 ###############################################################################
-# CONFIGURACIÓN GENERAL
+# GENERAL CONFIGURATION
 ###############################################################################
 
-# Directorio donde se almacenará toda la biblioteca multimedia.
-# Modifique esta ruta según su instalación.
+# Directory where the entire multimedia library will be stored.
+# Change this path to match your installation.
 #
-# Ejemplo:
+# Examples:
 # MEDIA_DIR="/mnt/dd2"
 # MEDIA_DIR="/media/raid"
 # MEDIA_DIR="/srv/media"
@@ -15,39 +15,45 @@
 MEDIA_DIR="__MEDIA_DIR__"
 
 ###############################################################################
-# DIRECTORIOS
+# DIRECTORIES
 ###############################################################################
 
-ENTRADA="$MEDIA_DIR/entrada"
-PROCESADAS="$MEDIA_DIR/procesadas"
-JELLYFIN="$MEDIA_DIR/jellyfin"
-TERMINADAS="$MEDIA_DIR/terminadas"
-ERRORES="$MEDIA_DIR/errores"
+INCOMING="$MEDIA_DIR/incoming"
+PROCESSING="$MEDIA_DIR/processing"
+LIBRARY="$MEDIA_DIR/library"
+COMPLETED="$MEDIA_DIR/completed"
+FAILED="$MEDIA_DIR/failed"
 LOGS="$MEDIA_DIR/logs"
+TEMP="$MEDIA_DIR/temp"
 
 ###############################################################################
-# TRANSCODIFICACIÓN
+# TRANSCODING
 ###############################################################################
 
-# Tamaño objetivo para una película de TARGET_MIN minutos (GB)
+# Target file size for a movie with TARGET_MIN minutes (GB)
 TARGET_GB=20
 
-# Duración de referencia para el cálculo dinámico del bitrate (minutos)
+# Reference duration used to calculate the dynamic bitrate (minutes)
 TARGET_MIN=150
 
-# Bitrate mínimo permitido para vídeo 4K (bits por segundo)
+# Minimum allowed video bitrate for 4K output (bits per second)
 MIN_VIDEO_BPS=8000000
 
 ###############################################################################
-# VÍDEO
+# VIDEO
 ###############################################################################
+
+# Output resolution.
+# Default: 3840x2160 (4K).
+# You can change these values to 1920x1080 (Full HD),
+# 7680x4320 (8K), or any other supported resolution.
 
 TARGET_W=3840
 TARGET_H=2160
 
 ###############################################################################
-# APIS
+# API KEYS
 ###############################################################################
 
-TMDB_API_KEY=""
-OMDB_API_KEY=""
+TMDB_API_KEY="YOUR_TMDB_API_KEY"
+OMDB_API_KEY="YOUR_OMDB_API_KEY"

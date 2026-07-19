@@ -2,7 +2,7 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-source /etc/ffmpeg-auto-transcoder/config.sh
+source "$SCRIPT_DIR/lib/config.sh"
 source "$SCRIPT_DIR/lib/tmdb.sh"
 source "$SCRIPT_DIR/lib/omdb.sh"
 
@@ -24,23 +24,20 @@ export LC_NUMERIC=C
 ###############################################################################
 # CONFIGURACIÓN
 ###############################################################################
-INPUT="$ENTRADA"
-OUTPUT="$PROCESADAS"
-JELLYFIN_DIR="$JELLYFIN"
-LOGDIR="$LOGS"
-DONEDIR="$TERMINADAS"
-ERRDIR="$ERRORES"
 
-mkdir -p "$OUTPUT" "$JELLYFIN_DIR" "$LOGDIR" "$DONEDIR" "$ERRDIR"
+mkdir -p \
+    "$PROCESSING" \
+    "$LIBRARY" \
+    "$LOGS" \
+    "$COMPLETED" \
+    "$FAILED"
 
-LOGFILE="${LOGDIR}/procesar_$(date +%F_%H-%M-%S).log"
-
+LOGFILE="${LOGS}/procesar_$(date +%F_%H-%M-%S).log"
 
 TARGET_TOTAL_BPS=$(awk \
     -v gb="$TARGET_GB" \
     -v min="$TARGET_MIN" \
     'BEGIN{printf "%.0f", (gb*1024*1024*1024*8)/(min*60)}')
-
 
 ###############################################################################
 # FUNCIONES
@@ -66,9 +63,15 @@ require_program ffmpeg
 require_program jq
 require_program bc
 
-[[ -d "$INPUT" ]] || error "No existe el directorio de entrada $INPUT"
+[[ -d "$INCOMING" ]] || error "No existe el directorio de entrada $INCOMING"
 
-for DIR in "$INPUT" "$OUTPUT" "$DONEDIR" "$ERRDIR" "$LOGDIR"; do
+for DIR in \
+    "$INCOMING" \
+    "$PROCESSING" \
+    "$COMPLETED" \
+    "$FAILED" \
+    "$LOGS"
+do
     [[ -w "$DIR" ]] || error "Sin permiso de escritura en $DIR"
 done
 
@@ -76,13 +79,13 @@ done
 # BUSCAR PELÍCULAS
 ###############################################################################
 
-PROGRESS_FILE="${LOGDIR}/ffmpeg.progress"
-EXTRA_FILE="${LOGDIR}/ffmpeg.extra"
+PROGRESS_FILE="${LOGS}/ffmpeg.progress"
+EXTRA_FILE="${LOGS}/ffmpeg.extra"
 
 while true
 do
     mapfile -d '' MOVIES < <(
-        find "$INPUT" -type f \( \
+        find "$INCOMING" -type f \( \
             -iname "*.mkv" -o \
             -iname "*.mp4" -o \
             -iname "*.avi" -o \
@@ -112,7 +115,7 @@ EOF
 
         BASENAME=$(basename "$FILE")
         NAME="${BASENAME%.*}"
-        OUTFILE="${OUTPUT}/${NAME}.mkv"
+        OUTFILE="${PROCESSING}/${NAME}.mkv"
 
     log "==============================================================="
     log "Archivo: $BASENAME"
@@ -176,7 +179,7 @@ fi
     JSON=$(ffprobe -v quiet -print_format json -show_format -show_streams "$FILE" || echo "")
     if [[ -z "$JSON" ]]; then
         log "ERROR: ffprobe no pudo leer el archivo $BASENAME. Saltando..."
-        mv "$FILE" "$ERRDIR/"
+        mv "$FILE" "$FAILED/"
         continue
     fi
 
@@ -184,7 +187,7 @@ fi
     VIDEO=$(jq '[.streams[] | select(.codec_type=="video" and (.disposition.attached_pic != 1))] | .[0] // empty' <<<"$JSON" 2>/dev/null || echo "")
     if [[ -z "$VIDEO" ]]; then
         log "ERROR: No se encontró pista de vídeo en $BASENAME. Saltando..."
-        mv "$FILE" "$ERRDIR/"
+        mv "$FILE" "$FAILED/"
         continue
     fi
 
@@ -324,17 +327,17 @@ lanzar_ffmpeg() {
 limite_tiempo=300          # 5 minutos sin avanzar
 ultimo_frame=0
 ultimo_movimiento=$SECONDS 
-CANCELADO_TESTIGO="${LOGDIR}/ffmpeg_cancelado_${NAME}.tmp"
+CANCELADO_TESTIGO="${LOGS}/ffmpeg_cancelado_${NAME}.tmp"
 rm -f "$CANCELADO_TESTIGO"
 
 # Forzamos la creación del archivo limpio para despertar al panel izquierdo
-PROGRESS_FILE="${LOGDIR}/ffmpeg.progress"
+PROGRESS_FILE="${LOGS}/ffmpeg.progress"
 
 rm -f "$PROGRESS_FILE"
 : > "$PROGRESS_FILE"
 
 # Archivo auxiliar para el monitor (NO lo toca FFmpeg)
-EXTRA_FILE="${LOGDIR}/ffmpeg.extra"
+EXTRA_FILE="${LOGS}/ffmpeg.extra"
 : > "$EXTRA_FILE"
 
 GPU_FILTER="scale_cuda=w=${TARGET_W}:h=${TARGET_H}:force_original_aspect_ratio=decrease:interp_algo=lanczos"
@@ -435,19 +438,19 @@ if [[ -f "$CANCELADO_TESTIGO" ]]; then
     log "TIMEOUT: FFmpeg detenido por falta de avance en $BASENAME"
     rm -f "$CANCELADO_TESTIGO"
     rm -f "$OUTFILE" "$PROGRESS_FILE" "$EXTRA_FILE"
-    mv "$FILE" "$ERRDIR/"
+    mv "$FILE" "$FAILED/"
     continue
 
 elif (( FFMPEG_EXIT != 0 )); then
     log "ERROR: Han fallado los dos intentos de transcodificación (GPU y CPU)."
     rm -f "$OUTFILE" "$PROGRESS_FILE" "$EXTRA_FILE"
-    mv "$FILE" "$ERRDIR/"
+    mv "$FILE" "$FAILED/"
     continue
 
 elif [[ ! -s "$OUTFILE" ]]; then
     log "ERROR: El archivo de salida no existe o está vacío."
     rm -f "$OUTFILE" "$PROGRESS_FILE" "$EXTRA_FILE"
-    mv "$FILE" "$ERRDIR/"
+    mv "$FILE" "$FAILED/"
     continue
 
 else
@@ -455,13 +458,13 @@ else
     rm -f "$PROGRESS_FILE" "$EXTRA_FILE"
 
     # Publicar la película terminada en Jellyfin
-    if mv "$OUTFILE" "$JELLYFIN_DIR/"; then
-        log "Película movida a Jellyfin: $JELLYFIN_DIR/$NAME.mkv"
-        mv "$FILE" "$DONEDIR/"
+    if mv "$OUTFILE" "$LIBRARY/"; then
+        log "Película movida a Jellyfin: $LIBRARY/$NAME.mkv"
+        mv "$FILE" "$COMPLETED/"
     else
         log "ERROR: No se pudo mover la película a Jellyfin."
         rm -f "$OUTFILE"
-        mv "$FILE" "$ERRDIR/"
+        mv "$FILE" "$FAILED/"
     fi
 fi
 done

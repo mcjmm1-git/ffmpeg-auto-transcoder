@@ -284,26 +284,24 @@ The installer creates the following directory layout:
 
 ```text
 MEDIA_DIR/
-├── entrada/
-├── errores/
-├── jellyfin/
+├── incoming/
+├── failed/
+├── library/
 ├── logs/
-├── procesadas/
+├── processing/
 ├── temp/
-└── terminadas/
+└── completed/
 ```
 
-### entrada
+### incoming
 
-Input directory monitored by the transcoding service.
-
-Simply copy your movie files here.
+Directory where new movies are placed before processing.
 
 ---
 
-### jellyfin
+### library
 
-Destination library.
+Final media library organized and ready for Jellyfin, Plex, Emby or any compatible media server.
 
 Movies are automatically organized using the following structure:
 
@@ -312,41 +310,35 @@ Movie Title (Year)/
 └── Movie Title (Year).mkv
 ```
 
-This layout is fully compatible with Jellyfin.
+---
+
+### processing
+
+Temporary working directory used while transcoding.
 
 ---
 
-### procesadas
+### completed
 
-Stores the original movie files after they have been successfully transcoded.
-
----
-
-### terminadas
-
-Stores movies that have been completely processed.
+Original files that have been successfully processed.
 
 ---
 
-### errores
+### failed
 
-Contains files that could not be processed successfully.
-
-This allows failed jobs to be reviewed and reprocessed if necessary.
+Files that could not be processed automatically.
 
 ---
 
 ### logs
 
-Stores execution logs and diagnostic information.
+Application logs and FFmpeg progress information.
 
 ---
 
 ### temp
 
-Temporary working directory used during transcoding.
-
-Files are automatically removed automatically when processing completes.
+Temporary files used during processing
 
 ---
 
