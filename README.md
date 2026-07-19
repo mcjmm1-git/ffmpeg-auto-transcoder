@@ -268,7 +268,7 @@ El monitor puede ejecutarse en cualquier momento para consultar el estado del se
 ## Organización de directorios
 
 ```text
-DISCO/
+MEDIA_DIR/
 │
 ├── entrada/
 │     Películas pendientes de procesar.

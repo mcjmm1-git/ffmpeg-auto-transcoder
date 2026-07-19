@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+
+###############################################################################
+# CONFIGURACIÓN GENERAL
+###############################################################################
+
+# Directorio donde se almacenará toda la biblioteca multimedia.
+# Modifique esta ruta según su instalación.
+#
+# Ejemplo:
+# MEDIA_DIR="/mnt/dd2"
+# MEDIA_DIR="/media/raid"
+# MEDIA_DIR="/srv/media"
+
+MEDIA_DIR="__MEDIA_DIR__"
+
+###############################################################################
+# DIRECTORIOS
+###############################################################################
+
+ENTRADA="$MEDIA_DIR/entrada"
+PROCESADAS="$MEDIA_DIR/procesadas"
+JELLYFIN="$MEDIA_DIR/jellyfin"
+TERMINADAS="$MEDIA_DIR/terminadas"
+ERRORES="$MEDIA_DIR/errores"
+LOGS="$MEDIA_DIR/logs"
+
+###############################################################################
+# TRANSCODIFICACIÓN
+###############################################################################
+
+# Tamaño objetivo para una película de TARGET_MIN minutos (GB)
+TARGET_GB=20
+
+# Duración de referencia para el cálculo dinámico del bitrate (minutos)
+TARGET_MIN=150
+
+# Bitrate mínimo permitido para vídeo 4K (bits por segundo)
+MIN_VIDEO_BPS=8000000
+
+###############################################################################
+# VÍDEO
+###############################################################################
+
+TARGET_W=3840
+TARGET_H=2160
+
+###############################################################################
+# APIS
+###############################################################################
+
+TMDB_API_KEY=""
+OMDB_API_KEY=""

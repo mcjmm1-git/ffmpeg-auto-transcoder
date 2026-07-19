@@ -12,7 +12,7 @@
 # MEDIA_DIR="/media/raid"
 # MEDIA_DIR="/srv/media"
 
-MEDIA_DIR="/CAMBIAR/ESTA/RUTA"
+MEDIA_DIR="__MEDIA_DIR__"
 
 ###############################################################################
 # DIRECTORIOS

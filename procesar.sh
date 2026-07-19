@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
-###############################################################################
-# PROCESAR.SH v0.4 - PARTE 1 DE 2
-# Analizador + reescalador a 4K (Acelerado por NVIDIA NVENC GPU)
-###############################################################################
-source ./config.sh
+
+#!/usr/bin/env bash
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+source "$SCRIPT_DIR/config.sh"
+source "$SCRIPT_DIR/lib/tmdb.sh"
+source "$SCRIPT_DIR/lib/omdb.sh"
 
 ###############################################################################
 # COMPROBAR CONFIGURACIÓN
@@ -16,8 +19,6 @@ if [[ -z "$MEDIA_DIR" || "$MEDIA_DIR" == "/CAMBIAR/ESTA/RUTA" ]]; then
     exit 1
 fi
 
-source "$(dirname "$0")/tmdb.sh"
-source "$(dirname "$0")/omdb.sh"
 set -Eeuo pipefail
 IFS=$'\n\t'
 export LC_NUMERIC=C
@@ -25,12 +26,12 @@ export LC_NUMERIC=C
 ###############################################################################
 # CONFIGURACIÓN
 ###############################################################################
-INPUT="${DISCO}/entrada"
-OUTPUT="${DISCO}/procesadas"
-JELLYFIN_DIR="${DISCO}/jellyfin"
-LOGDIR="${DISCO}/logs"
-DONEDIR="${DISCO}/terminadas"
-ERRDIR="${DISCO}/errores"
+INPUT="$ENTRADA"
+OUTPUT="$PROCESADAS"
+JELLYFIN_DIR="$JELLYFIN"
+LOGDIR="$LOGS"
+DONEDIR="$TERMINADAS"
+ERRDIR="$ERRORES"
 
 mkdir -p "$OUTPUT" "$JELLYFIN_DIR" "$LOGDIR" "$DONEDIR" "$ERRDIR"
 
