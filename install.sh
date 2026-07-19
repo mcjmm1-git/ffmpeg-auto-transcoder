@@ -121,7 +121,7 @@ install_package() {
 install_dependencies() {
 
     echo
-    echo "[0/6] Instalando dependencias..."
+    echo "[1/7] Instalando dependencias..."
     echo
 
     local REQUIRED=(
@@ -252,7 +252,7 @@ show_summary() {
 copy_project() {
 
     echo
-    echo "[1/6] Copiando archivos..."
+    echo "[2/7] Copiando archivos..."
     echo
 
     if [[ -d "$INSTALL_DIR" ]]; then
@@ -303,7 +303,7 @@ chown -R "$REAL_USER":"$REAL_USER" "$MEDIA_DIR"
 generate_config() {
 
     echo
-    echo "[2/6] Generando configuración..."
+    echo "[3/7] Generando configuración..."
     echo
 
     sed \
@@ -318,7 +318,7 @@ generate_config() {
 save_install_info() {
 
     echo
-    echo "[3/7] Guardando información de la instalación..."
+    echo "[4/7] Guardando información de la instalación..."
     echo
 
     mkdir -p /etc/ffmpeg-auto-transcoder
@@ -335,7 +335,7 @@ EOF
 generate_services() {
 
     echo
-    echo "[3/6] Generando servicios..."
+    echo "[5/7] Generando servicios..."
     echo
 
     sed \
@@ -355,7 +355,7 @@ generate_services() {
 install_services() {
 
     echo
-    echo "[4/6] Instalando servicios..."
+    echo "[6/7] Instalando servicios..."
     echo
 
     systemctl daemon-reload
@@ -368,7 +368,7 @@ install_services() {
 start_services() {
 
     echo
-    echo "[5/6] Iniciando servicios..."
+    echo "[7/7] Iniciando servicios..."
     echo
 
     systemctl restart procesar.service
