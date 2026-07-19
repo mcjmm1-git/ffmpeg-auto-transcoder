@@ -306,14 +306,17 @@ generate_config() {
     echo "[3/7] Generando configuración..."
     echo
 
+    mkdir -p /etc/ffmpeg-auto-transcoder
+
     sed \
         -e "s|__MEDIA_DIR__|$MEDIA_DIR|g" \
         "$INSTALL_DIR/templates/config.sh.template" \
-        > "$INSTALL_DIR/config.sh"
+        > "/etc/ffmpeg-auto-transcoder/config.sh"
 
     rm -f "$INSTALL_DIR/templates/config.sh.template"
 
 }
+
 
 save_install_info() {
 
@@ -378,27 +381,48 @@ start_services() {
 
 finish() {
 
-    echo
-    echo "==============================================="
-    echo " Instalación completada correctamente"
-    echo "==============================================="
-    echo
-    echo "Directorio instalado:"
-    echo "  $INSTALL_DIR"
-    echo
-    echo "Biblioteca multimedia:"
-    echo "  $MEDIA_DIR"
-    echo
-    echo "Estado del servicio:"
-    echo
-    echo "  sudo systemctl status procesar.service"
-    echo
-    echo "Monitor web:"
-    echo
-    echo "  http://IP_DEL_SERVIDOR:9001"
-    echo
-    echo "Disfruta 😊"
-    echo
+echo
+echo "==============================================="
+echo " Instalación completada correctamente"
+echo "==============================================="
+echo
+
+echo "Directorio instalado:"
+echo "  $INSTALL_DIR"
+echo
+
+echo "Biblioteca multimedia:"
+echo "  $MEDIA_DIR"
+echo
+
+echo "Estado del servicio:"
+echo
+echo "  sudo systemctl status procesar.service"
+echo
+
+echo "Monitor web:"
+echo
+echo "  http://IP_DEL_SERVIDOR:9001"
+echo
+
+echo "⚠ IMPORTANTE"
+echo
+echo "Edite el siguiente archivo:"
+echo
+echo "  /etc/ffmpeg-auto-transcoder/config.sh"
+echo
+echo "e introduzca sus claves API:"
+echo
+echo "  • TMDB_API_KEY"
+echo "  • OMDB_API_KEY"
+echo
+echo "Sin estas claves el programa no podrá"
+echo "identificar ni organizar correctamente"
+echo "las películas."
+echo
+
+echo "Disfruta 😊"
+echo
 
 }
 

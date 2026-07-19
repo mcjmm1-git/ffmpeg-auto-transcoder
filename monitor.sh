@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-cd "$(dirname "$0")" || exit 1
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-source ./config.sh
+source /etc/ffmpeg-auto-transcoder/config.sh
 
 ###############################################################################
 # MONITOR

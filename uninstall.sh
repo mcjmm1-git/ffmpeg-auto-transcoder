@@ -229,4 +229,5 @@ remove_service_files
 reload_systemd
 remove_program
 remove_configuration
+remove_media_directory
 finish
