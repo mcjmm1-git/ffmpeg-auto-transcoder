@@ -30,6 +30,7 @@ SERVICES=(
 
 PROGRAM_REMOVED=false
 CONFIG_REMOVED=false
+MEDIA_REMOVED=false
 
 ###############################################################################
 # FUNCIONES
@@ -51,7 +52,7 @@ check_root() {
 stop_services() {
 
     echo
-    echo "[1/6] Deteniendo servicios..."
+    echo "[1/7] Deteniendo servicios..."
     echo
 
     for SERVICE in "${SERVICES[@]}"; do
@@ -70,7 +71,7 @@ stop_services() {
 disable_services() {
 
     echo
-    echo "[2/6] Deshabilitando servicios..."
+    echo "[2/7] Deshabilitando servicios..."
     echo
 
     for SERVICE in "${SERVICES[@]}"; do
@@ -89,7 +90,7 @@ disable_services() {
 remove_service_files() {
 
     echo
-    echo "[3/6] Eliminando servicios..."
+    echo "[3/7] Eliminando servicios..."
     echo
 
     for SERVICE in "${SERVICES[@]}"; do
@@ -110,7 +111,7 @@ remove_service_files() {
 reload_systemd() {
 
     echo
-    echo "[4/6] Recargando systemd..."
+    echo "[4/7] Recargando systemd..."
     echo
 
     systemctl daemon-reload
@@ -122,7 +123,7 @@ reload_systemd() {
 remove_program() {
 
     echo
-    echo "[5/6] Eliminando programa..."
+    echo "[5/7] Eliminando programa..."
     echo
 
     if [[ -d "$INSTALL_DIR" ]]; then
@@ -138,7 +139,7 @@ remove_program() {
 remove_configuration() {
 
     echo
-    echo "[6/6] Eliminando configuración..."
+    echo "[6/7] Eliminando configuración..."
     echo
 
     read -rp "¿Desea eliminar también la configuración? [s/N]: " RESP
@@ -156,6 +157,32 @@ remove_configuration() {
     else
 
         echo "✔ Configuración conservada"
+
+    fi
+
+}
+
+remove_media_directory() {
+
+    echo
+    echo "[7/7] Eliminando biblioteca multimedia..."
+    echo
+
+    read -rp "¿Desea eliminar también la biblioteca multimedia? [s/N]: " RESP
+
+    if [[ "$RESP" =~ ^[Ss]$ ]]; then
+
+        if [[ -d "$MEDIA_DIR" ]]; then
+            rm -rf "$MEDIA_DIR"
+            echo "✔ Biblioteca multimedia eliminada"
+            MEDIA_REMOVED=true
+        else
+            echo "- La biblioteca multimedia no existe"
+        fi
+
+    else
+
+        echo "✔ Biblioteca multimedia conservada"
 
     fi
 
@@ -181,10 +208,13 @@ finish() {
         echo "✔ Configuración conservada"
     fi
 
-    echo "✔ Biblioteca multimedia no modificada"
-    echo "  $MEDIA_DIR"
+    if $MEDIA_REMOVED; then
+        echo "✔ Biblioteca multimedia eliminada"
+    else
+        echo "✔ Biblioteca multimedia conservada"
+    fi
 
-    echo
+    echo "  $MEDIA_DIR"
 
 }
 
