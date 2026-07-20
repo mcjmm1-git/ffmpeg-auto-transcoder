@@ -2,12 +2,15 @@
 
 CONFIG_FILE="/etc/ffmpeg-auto-transcoder/config.sh"
 
+# Load the system configuration if available.
+# Docker deployments typically rely on environment variables instead.
 if [[ -f "$CONFIG_FILE" ]]; then
     source "$CONFIG_FILE"
 fi
 
 ###############################################################################
-# CONFIGURACIÓN DESDE VARIABLES DE ENTORNO (Docker)
+# ENVIRONMENT VARIABLE OVERRIDES
+# (used by Docker Compose when no config file is present)
 ###############################################################################
 
 MEDIA_DIR="${MEDIA_DIR:-/media}"
@@ -23,7 +26,7 @@ TMDB_API_KEY="${TMDB_API_KEY:-}"
 OMDB_API_KEY="${OMDB_API_KEY:-}"
 
 ###############################################################################
-# DIRECTORIOS
+# DIRECTORIES
 ###############################################################################
 
 INCOMING="$MEDIA_DIR/incoming"

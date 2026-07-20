@@ -1,0 +1,44 @@
+services:
+  ffmpeg-auto-transcoder:
+
+    container_name: ffmpeg-auto-transcoder
+
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+
+    user: "${PUID}:${PGID}"
+
+    restart: unless-stopped
+
+    gpus: all
+
+    environment:
+      MEDIA_DIR: /media
+
+      # Target movie size (GB).
+      # Increase this value for higher quality.
+      # Reduce it to save disk space.
+      TARGET_GB: 20
+
+      # Ignore movies shorter than this duration (minutes).
+      TARGET_MIN: 150
+
+      # Minimum video bitrate (bits per second).
+      MIN_VIDEO_BPS: 8000000
+
+      # Output resolution.
+      #
+      # 3840 x 2160 = 4K UHD
+      # 2560 x 1440 = 1440p
+      # 1920 x 1080 = Full HD
+      # 1280 x 720  = HD
+      #
+      TARGET_W: 3840
+      TARGET_H: 2160
+
+      TMDB_API_KEY: "${TMDB_API_KEY}"
+      OMDB_API_KEY: "${OMDB_API_KEY}"
+
+    volumes:
+      - "${HOST_MEDIA}:/media:rw"
