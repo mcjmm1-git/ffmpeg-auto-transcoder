@@ -74,7 +74,7 @@ No manual dependency installation is required.
 Clone the repository:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/ffmpeg-auto-transcoder.git
+git clone https://github.com/mcjmm1-git/ffmpeg-auto-transcoder.git
 cd ffmpeg-auto-transcoder
 ```
 
@@ -136,14 +136,14 @@ You can obtain your API keys here:
 
 The installer automatically creates and enables two systemd services:
 
-- **procesar.service** — Background transcoding service.
+- **transcoder.service** — Background transcoding service.
 - **ffmpeg-monitor.service** — Console and web monitoring service.
 
 Useful commands:
 
 ```bash
-sudo systemctl status procesar.service
-sudo systemctl restart procesar.service
+sudo systemctl status transcoder.service
+sudo systemctl restart transcoder.service
 
 sudo systemctl status ffmpeg-monitor.service
 sudo systemctl restart ffmpeg-monitor.service
@@ -193,7 +193,7 @@ The web interface displays the same real-time information as the console monitor
 
 ### Console Monitor
 
-![Console Monitor](docs/monitor-consola.png)
+![Console Monitor](docs/monitor-console.png)
 
 ### Web Monitor
 
@@ -214,7 +214,7 @@ The web interface displays the same real-time information as the console monitor
 │
 ├── templates/
 │   ├── config.sh.template
-│   ├── procesar.service.template
+│   ├── transcoder.service.template
 │   └── ffmpeg-monitor.service.template
 │
 ├── install.sh
@@ -249,7 +249,7 @@ The transcoding workflow is fully automated.
 New movie
      │
      ▼
-Media library (input)
+incoming/
      │
      ▼
 Metadata lookup (TMDb / OMDb)

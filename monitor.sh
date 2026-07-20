@@ -217,13 +217,13 @@ read_progress()
 
 calculate_progress()
 {
-    PROGRESS=0
+    PERCENT=0
     REMAINING=0
 
     if (( RAW_DUR > 0 ))
     then
 
-        PROGRESS=$(awk \
+        PERCENT=$(awk \
             -v a="$PROCESSED_SECONDS" \
             -v b="$RAW_DUR" \
             'BEGIN{printf "%.2f",(a/b)*100}')
@@ -235,7 +235,7 @@ calculate_progress()
 
     fi
 
-    PROGRESS_INT=$(printf "%.0f" "$PROGRESS")
+    PROGRESS_INT=$(printf "%.0f" "$PERCENT")
 
     if (( PROGRESS_INT > 100 )); then
         PROGRESS_INT=100
