@@ -17,7 +17,7 @@ WHITE='\e[97m'
 BLACK='\e[30m'
 
 BLUE='\e[38;5;33m'
-CYAN='\e[38;5;45m'
+CYAN='\e[38;5;31m'
 GREEN='\e[38;5;46m'
 YELLOW='\e[38;5;220m'
 ORANGE='\e[38;5;208m'
@@ -42,8 +42,7 @@ section()
 {
     echo
     separator
-    printf "%b%b%s%b\n" "$BOLD" "$CYAN" "$*"
-    printf "%b\n" "$RST"
+    printf "%b%b%s%b\n" "$BOLD" "$BLUE" "$*" "$RST"
 }
 
 label()
