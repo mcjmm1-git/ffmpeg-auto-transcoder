@@ -3,7 +3,7 @@
 </h1>
 
 <p align="center">
-Automatic movie transcoding using <b>FFmpeg</b> and <b>NVIDIA NVENC</b>.
+Automatic movie transcoding powered by <b>FFmpeg</b> and <b>NVIDIA NVENC</b>.
 </p>
 
 <p align="center">
@@ -22,33 +22,35 @@ Automatic movie transcoding using <b>FFmpeg</b> and <b>NVIDIA NVENC</b>.
 
 ---
 
-Automatic movie transcoding service powered by **FFmpeg** and **NVIDIA NVENC**.
+## Overview
 
-The application continuously monitors an **incoming** directory, automatically processes new movies, identifies them using **TMDb** and **OMDb**, transcodes them to H.265/HEVC, and organizes the final files into a structured media library.
+**FFmpeg Auto Transcoder** is an automated movie transcoding service designed for Linux servers, NAS systems and home media libraries.
 
-Designed to run unattended on home servers, NAS systems and Linux workstations.
+The application continuously watches an **incoming** directory, identifies new movies using **TMDb** and **OMDb**, transcodes them to **H.265/HEVC** with **NVIDIA NVENC** hardware acceleration, and automatically organizes the resulting files into a structured media library.
 
----
-
-## Features
-
-- 🎬 Automatic movie detection.
-- 🚀 NVIDIA NVENC hardware acceleration.
-- 📦 Automatic H.265 / HEVC transcoding.
-- 📚 Automatic movie identification using TMDb and OMDb.
-- 📁 Organized media library.
-- 🌐 Real-time web monitor.
-- ⚙️ Native Linux installer.
-- 🐳 Docker Compose deployment.
-- 🔄 Automatic service startup with systemd.
-- 📝 Detailed logging.
-- 🛡️ Automatic recovery if FFmpeg becomes unresponsive.
+Once installed, the service runs unattended, automatically processing every new movie placed in the monitored folder.
 
 ---
 
-## Project Structure
+# Features
 
-```
+- 🎬 Automatic movie detection
+- 🚀 NVIDIA NVENC hardware acceleration
+- 📦 Automatic H.265 / HEVC transcoding
+- 🎞️ Movie identification using TMDb and OMDb
+- 📁 Automatic media library organization
+- 🌐 Real-time web monitor
+- ⚙️ Native Linux installation
+- 🐳 Docker Compose deployment
+- 🔄 Automatic startup with systemd
+- 📝 Detailed logging
+- 🛡️ Automatic recovery from stalled FFmpeg processes
+
+---
+
+# Project Structure
+
+```text
 ffmpeg-auto-transcoder/
 ├── transcoder.sh
 ├── monitor.sh
@@ -61,17 +63,22 @@ ffmpeg-auto-transcoder/
 │   └── docker/
 └── README.md
 ```
-## Requirements
 
-### Native Installation
+---
 
-- Ubuntu 24.04 LTS (recommended)
+# Requirements
+
+## Native Installation
+
+Recommended environment:
+
+- Ubuntu 24.04 LTS
 - NVIDIA GPU with NVENC support
 - NVIDIA proprietary drivers
-- Internet connection (TMDb / OMDb)
+- Internet connection (TMDb / OMDb access)
 - sudo privileges
 
-The installer automatically installs the required packages:
+The installer automatically installs every required dependency, including:
 
 - FFmpeg
 - rsync
@@ -82,22 +89,24 @@ The installer automatically installs the required packages:
 
 ---
 
-### Docker Compose
+## Docker Deployment
 
-- Docker Engine 29 or later
+Docker support requires:
+
+- Docker Engine 29 or newer
 - Docker Compose v2
 - NVIDIA Container Toolkit
 - NVIDIA proprietary drivers
 
-The media library directory must be mounted as a Docker volume and be writable by the configured user (`PUID` / `PGID`).
+The media library must be mounted as a writable Docker volume using the configured `PUID` and `PGID`.
 
 ---
 
-## Supported Directory Structure
+# Media Library Structure
 
-The application automatically creates and manages the following directories inside the media library:
+During installation the application creates the complete media library layout automatically.
 
-```
+```text
 MEDIA_DIR/
 ├── incoming/
 ├── processing/
@@ -108,9 +117,11 @@ MEDIA_DIR/
 └── temp/
 ```
 
-Simply copy new movies into the **incoming** directory and the transcoder will process them automatically.
+Simply copy a movie into the **incoming** directory and the transcoder will take care of the rest.
 
-## Native Installation
+---
+
+# Native Installation
 
 Clone the repository:
 
@@ -132,18 +143,26 @@ Run the installer:
 sudo ./install.sh
 ```
 
-The installer will:
+During installation you will be asked for:
 
-- Install all required dependencies.
-- Create the media library directory structure.
-- Copy the application to `/opt/ffmpeg-auto-transcoder`.
-- Generate the configuration files.
-- Install and enable the systemd services.
-- Start the transcoder and the web monitor.
+- Media library location
+- TMDb API key
+- OMDb API key
+
+The installer automatically:
+
+- Installs all required dependencies
+- Creates the media library directory structure
+- Copies the application to `/opt/ffmpeg-auto-transcoder`
+- Generates the configuration files
+- Installs and enables the required systemd services
+- Starts both the transcoder and the web monitor
 
 ---
 
-### Installed Services
+# Installed Services
+
+Two services are installed automatically:
 
 ```text
 transcoder.service
@@ -158,7 +177,7 @@ sudo systemctl status transcoder.service
 sudo systemctl status ffmpeg-monitor.service
 ```
 
-Restart the services:
+Restart them:
 
 ```bash
 sudo systemctl restart transcoder.service
@@ -166,7 +185,7 @@ sudo systemctl restart transcoder.service
 sudo systemctl restart ffmpeg-monitor.service
 ```
 
-Stop the services:
+Stop them:
 
 ```bash
 sudo systemctl stop transcoder.service
@@ -176,7 +195,7 @@ sudo systemctl stop ffmpeg-monitor.service
 
 ---
 
-### Uninstall
+# Uninstall
 
 To completely remove the application:
 
@@ -184,12 +203,12 @@ To completely remove the application:
 sudo ./uninstall.sh
 ```
 
-The uninstaller lets you choose whether to preserve or remove:
+The uninstaller allows you to choose whether to keep or remove:
 
 - Configuration files
 - Media library
 
-## Docker Compose
+# Docker Deployment
 
 Go to the Docker deployment directory:
 
@@ -231,7 +250,7 @@ uid=1000(john) gid=1000(john) groups=1000(john)
 
 ---
 
-### Build and Start
+## Build and Start
 
 Build the image and start the container:
 
@@ -239,7 +258,7 @@ Build the image and start the container:
 docker compose up -d --build
 ```
 
-To start the container again after the first build:
+For subsequent starts:
 
 ```bash
 docker compose up -d
@@ -247,7 +266,7 @@ docker compose up -d
 
 ---
 
-### View the Logs
+## View the Logs
 
 ```bash
 docker compose logs -f
@@ -255,7 +274,7 @@ docker compose logs -f
 
 ---
 
-### Stop the Container
+## Stop the Container
 
 ```bash
 docker compose down
@@ -263,34 +282,36 @@ docker compose down
 
 ---
 
-### Docker Configuration
+## Docker Configuration
 
-The default transcoding parameters are defined directly in:
+Most transcoding parameters can be adjusted directly in:
 
 ```text
 deploy/docker/docker-compose.yml
 ```
 
-You can easily customize values such as:
+Common options include:
 
 - Target movie size
 - Minimum movie duration
 - Minimum video bitrate
-- Output resolution (4K, 1440p, 1080p, 720p)
+- Output resolution (4K, 1440p, 1080p or 720p)
 
-Every option is documented inside the file.
+Each option is documented inside the Compose file.
 
-## Configuration
+---
 
-The application stores all transcoding settings in a single configuration file.
+# Configuration
 
-### Native Installation
+All transcoding settings are stored in a single configuration file.
+
+## Native Installation
 
 ```text
 /etc/ffmpeg-auto-transcoder/config.sh
 ```
 
-### Docker Compose
+## Docker Deployment
 
 Configuration is provided through:
 
@@ -299,22 +320,22 @@ Configuration is provided through:
 
 ---
 
-### TMDb and OMDb API Keys
+## TMDb and OMDb API Keys
 
 Movie identification requires API keys from both services.
 
-Create a free account and obtain your personal keys:
+You can obtain free personal API keys here:
 
 - TMDb: https://www.themoviedb.org/settings/api
 - OMDb: https://www.omdbapi.com/apikey.aspx
 
-Without these keys, movies cannot be automatically identified or renamed.
+Without valid API keys the application can still transcode movies, but automatic identification and renaming will be unavailable.
 
 ---
 
-### Media Library
+## Media Library
 
-The application expects the following directory structure:
+The application manages the following directory structure automatically:
 
 ```text
 MEDIA_DIR/
@@ -327,53 +348,56 @@ MEDIA_DIR/
 └── temp/
 ```
 
-Simply copy a movie into the **incoming** directory.
+The workflow is completely automatic.
 
-The transcoder will automatically:
+When a new movie is copied into **incoming**, the application will:
 
 1. Detect the new file.
 2. Move it to `processing`.
-3. Identify the movie.
-4. Transcode it to HEVC (H.265).
-5. Store the final movie inside `library`.
-6. Move the original file to `completed`.
+3. Identify the movie using TMDb and OMDb.
+4. Analyze the media with FFprobe.
+5. Transcode it to H.265 / HEVC.
+6. Save the new file into `library`.
+7. Move the original movie to `completed`.
 
-If an error occurs, the original file is moved to `failed`.
+If the transcoding process fails, the original file is automatically moved to the `failed` directory.
 
 ---
 
-### Output Resolution
+## Output Resolution
 
-The output resolution can be configured in `docker-compose.yml` or `config.sh`.
+The target resolution can be configured in either `config.sh` or `docker-compose.yml`.
 
 Supported examples:
 
 | Resolution | Width | Height |
 |------------|------:|-------:|
-| 4K UHD     | 3840 | 2160 |
-| 1440p      | 2560 | 1440 |
-| Full HD    | 1920 | 1080 |
-| HD         | 1280 | 720 |
+| 4K UHD | 3840 | 2160 |
+| 1440p | 2560 | 1440 |
+| Full HD | 1920 | 1080 |
+| HD | 1280 | 720 |
 
-The transcoder automatically preserves the original aspect ratio while scaling and padding the image when necessary.
+The transcoder always preserves the original aspect ratio, adding padding only when required.
 
-## Web Monitor
+---
 
-The application includes a built-in web monitor that displays the current transcoding status in real time.
+# Web Monitor
 
-During an active transcode, the monitor shows:
+A built-in web monitor provides a live view of the transcoding process from any browser.
+
+During an active job it displays:
 
 - Current movie
 - Detected title
 - Progress percentage
 - Progress bar
 - Elapsed time
-- Remaining time (ETA)
+- Estimated remaining time (ETA)
 - Current FPS
-- Encoder quality
+- Encoding speed
 - NVIDIA GPU utilization
-- GPU encoder usage
-- GPU decoder usage
+- Encoder utilization
+- Decoder utilization
 - GPU memory usage
 - GPU temperature
 - GPU power consumption
@@ -381,9 +405,9 @@ During an active transcode, the monitor shows:
 
 ---
 
-### Native Installation
+## Native Installation
 
-The monitor is available at:
+Once installed, the monitor is available at:
 
 ```text
 http://SERVER_IP:9001
@@ -397,7 +421,7 @@ http://192.168.1.100:9001
 
 ---
 
-### Docker Compose
+## Docker Deployment
 
 Expose port **9001** in your `docker-compose.yml`:
 
@@ -406,31 +430,35 @@ ports:
   - "9001:9001"
 ```
 
-Then access the monitor from your browser:
+Then open:
 
 ```text
 http://SERVER_IP:9001
 ```
 
+from any browser connected to the same network.
+
 ---
 
-### When No Movie Is Being Processed
+## Idle Mode
 
-If the transcoder is idle, the monitor displays:
+When no movie is being processed, the monitor automatically switches to an idle view showing useful system information, including:
 
 - Service status
 - GPU information
 - Media library location
-- Number of pending movies
-- Helpful commands for managing the service
+- Pending movie count
+- Helpful management commands
 
-The display refreshes automatically, providing a live overview of the system status without requiring any manual intervention.
+The display refreshes automatically, allowing you to monitor the system in real time without any manual interaction.
 
-## How It Works
+---
 
-The transcoder continuously monitors the `incoming` directory for new movie files.
+# How It Works
 
-When a new file is detected, the following workflow is executed automatically:
+The application continuously watches the **incoming** directory for new movies.
+
+Whenever a new file appears, the following workflow is executed automatically:
 
 ```text
 incoming
@@ -439,7 +467,7 @@ incoming
 processing
     │
     ├── Movie identification (TMDb / OMDb)
-    ├── Video analysis (FFprobe)
+    ├── Media analysis (FFprobe)
     ├── Hardware transcoding (NVENC)
     ├── Progress monitoring
     └── Error detection
@@ -451,50 +479,51 @@ library
 completed
 ```
 
-If the transcoding process fails for any reason, the original movie is moved to:
+If an unrecoverable error occurs, the original movie is safely moved to:
 
 ```text
 failed/
 ```
+# Hardware Acceleration
 
----
+FFmpeg Auto Transcoder takes advantage of **NVIDIA NVENC** hardware acceleration whenever a compatible GPU is available.
 
-## Hardware Acceleration
+Supported features include:
 
-The application uses NVIDIA NVENC hardware acceleration whenever supported by the installed GPU.
-
-Features include:
-
-- H.265 / HEVC encoding
+- H.265 / HEVC hardware encoding
 - Automatic GPU utilization monitoring
-- Encoder utilization monitoring
-- Automatic fallback for incompatible filters
-- Detection of stalled FFmpeg processes
+- Encoder and decoder utilization monitoring
+- GPU memory usage reporting
+- Automatic detection of stalled FFmpeg processes
 - Automatic recovery from encoding failures
 
+By offloading video encoding to the GPU, the application significantly reduces CPU usage while maintaining excellent transcoding performance.
+
 ---
 
-## Logging
+# Logging
 
-Detailed logs are stored in:
+Detailed logs are stored inside the media library:
 
 ```text
 MEDIA_DIR/logs/
 ```
 
-These logs are useful for troubleshooting failed transcodes and reviewing the processing history.
+These logs include transcoding activity, errors and progress information, making troubleshooting and auditing straightforward.
 
 ---
 
-## Updating
+# Updating
 
-To update the application:
+Keeping the application up to date is simple.
+
+First, update your local repository:
 
 ```bash
 git pull
 ```
 
-### Native Installation
+## Native Installation
 
 Run the installer again:
 
@@ -502,11 +531,13 @@ Run the installer again:
 sudo ./install.sh
 ```
 
-The installer updates the application while preserving your existing configuration.
+The installer updates the application while preserving your existing configuration and media library.
 
-### Docker Compose
+---
 
-Rebuild the image:
+## Docker Deployment
+
+Rebuild and restart the container:
 
 ```bash
 docker compose up -d --build
@@ -514,7 +545,7 @@ docker compose up -d --build
 
 ---
 
-## License
+# License
 
 This project is released under the **MIT License**.
 
@@ -522,17 +553,19 @@ You are free to use, modify and distribute this software in accordance with the 
 
 ---
 
-## Contributing
+# Contributing
 
-Contributions, bug reports and feature requests are always welcome.
+Contributions are always welcome.
 
-If you find a bug or have an idea for improving the project, please open an issue or submit a pull request.
+If you discover a bug, have an idea for a new feature or would like to improve the project, feel free to open an issue or submit a pull request.
+
+Every contribution, no matter how small, is appreciated.
 
 ---
 
-## Acknowledgements
+# Acknowledgements
 
-This project would not be possible without the excellent work of:
+This project would not be possible without the outstanding work of the following projects and communities:
 
 - FFmpeg
 - NVIDIA NVENC
@@ -540,10 +573,29 @@ This project would not be possible without the excellent work of:
 - OMDb API
 - ttyd
 
+Many thanks to everyone involved in developing and maintaining these tools.
+
+---
+
+# Roadmap
+
+Planned improvements for future releases include:
+
+- Enhanced web dashboard
+- Additional transcoding profiles
+- Multi-language support
+- Improved metadata handling
+- Better Docker customization
+- Expanded monitoring and statistics
+
+Suggestions and feature requests are always welcome.
+
 ---
 
 # FFmpeg Auto Transcoder
 
-Automatically identify, transcode and organize your movie collection with NVIDIA GPU acceleration.
+Automatically identify, transcode and organize your movie collection using **FFmpeg** and **NVIDIA NVENC**.
 
-Enjoy! 🎬
+Designed to work unattended, so you only need to copy your movies into the **incoming** directory and let the application handle the rest.
+
+Happy transcoding! 🎬
