@@ -18,6 +18,8 @@ DEFAULT_INSTALL_DIR="/opt/ffmpeg-auto-transcoder"
 INSTALL_DIR=""
 MEDIA_DIR=""
 REAL_USER=""
+TMDB_API_KEY=""
+OMDB_API_KEY=""
 
 ###############################################################################
 # FUNCTIONS
@@ -245,6 +247,18 @@ ask_media_directory() {
 
 }
 
+ask_api_keys()
+{
+    echo
+    echo "TMDb and OMDb API keys"
+    echo
+    echo "Leave a field empty if you want to configure it later."
+    echo
+
+    read -rp "TMDb API key: " TMDB_API_KEY
+    read -rp "OMDb API key: " OMDB_API_KEY
+}
+
 show_summary() {
 
     clear
@@ -338,11 +352,12 @@ generate_config() {
 
     sed \
         -e "s|__MEDIA_DIR__|$MEDIA_DIR|g" \
+        -e "s|YOUR_TMDB_API_KEY|$TMDB_API_KEY|g" \
+        -e "s|YOUR_OMDB_API_KEY|$OMDB_API_KEY|g" \
         "$INSTALL_DIR/templates/config.sh.template" \
         > "/etc/ffmpeg-auto-transcoder/config.sh"
 
     rm -f "$INSTALL_DIR/templates/config.sh.template"
-
 }
 
 save_install_info() {
@@ -470,6 +485,8 @@ check_dependencies
 ask_install_directory
 
 ask_media_directory
+
+ask_api_keys
 
 show_summary
 

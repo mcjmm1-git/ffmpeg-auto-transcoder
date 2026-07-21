@@ -141,6 +141,9 @@ update_status()
 ###############################################################################
 
 create_progress_bar()
+{
+    local progress=$1
+    local width=${2:-50}
 
     progress=$(printf "%.0f" "$progress")
 
@@ -151,6 +154,7 @@ create_progress_bar()
     local empty=$((width - filled))
 
     local bar=""
+    local i
 
     for ((i=0; i<filled; i++)); do
         bar+="█"
@@ -357,108 +361,72 @@ read_extra()
 
 draw_screen()
 {
-clear
+    printf '\e[H'
 
-local bar
+    local bar
+    local cols
+    local label_width=12
+    local percent_width=8
+    local bar_width
 
-title "🎬  FFmpeg Auto Transcoder"
-
-echo
-
-label "Title:"
-printf " "
-value "$TITLE"
-printf "\n"
-
-label "File:"
-printf " "
-value "$CURRENT_FILE"
-printf "\n"
-
-section "⚙ NOW PROCESSING"
-
-section "⚙ NOW PROCESSING"
-
-local cols
-local label_width=12
-local percent_text
-local bar_width
-
-cols=$(terminal_width)
-
-percent_text=$(printf "%.2f %%" "$PERCENT")
-
-bar_width=$(( cols - label_width - ${#percent_text} - 8 ))
-
-(( bar_width < 20 )) && bar_width=20
-
-bar=$(create_progress_bar "$PROGRESS_INT" "$bar_width")
-
-    printf "%-12s [%b%s%b] %.2f %%\n" \
-        "Progress:" \
-        "$BAR_COLOR" \
-        "$bar" \
-        "$RESET" \
-        "$PERCENT"
-
-    printf "%-12s %s / %s\n" \
-        "Time:" \
-        "$(seconds_to_hms "$PROCESSED_SECONDS")" \
-        "$(seconds_to_hms "$RAW_DUR")"
-
-    printf "%-12s %s\n" "ETA:" "$(seconds_to_hms "$ETA")"
-    printf "%-12s %s\n" "FPS:" "$FPS"
-    printf "%-12s %s\n" "Speed:" "$SPEED"
+    title "🎬  FFmpeg Auto Transcoder"
 
     echo
-    echo "$LINE"
 
-    echo
-    echo -e "${BOLD}QUEUE${RESET}"
-    echo
+    field "Title" "$TITLE"
+    field "File" "$CURRENT_FILE"
+
+    section "⚙ NOW PROCESSING"
+
+    cols=$(terminal_width)
+
+    bar_width=$(( cols - label_width - percent_width - 2 ))
+
+    (( bar_width < 5 )) && bar_width=5
+
+    bar=$(create_progress_bar "$PROGRESS_INT" "$bar_width")
+
+progress_field \
+    "Progress" \
+    "$bar" \
+    "$PERCENT" \
+    "$BAR_COLOR" \
+    "$label_width" \
+    "$percent_width"
+
+    field "Time" \
+        "$(seconds_to_hms "$PROCESSED_SECONDS") / $(seconds_to_hms "$RAW_DUR")"
+
+    field "ETA" "$(seconds_to_hms "$ETA")"
+    field "FPS" "$FPS"
+    field "Speed" "$SPEED"
+
+    section "📋 QUEUE"
 
     draw_queue
 
-    echo
-    echo "$LINE"
+    section "🎮 GPU"
+
+    field "Model" "$GPU_NAME"
+
+    field "Usage" \
+        "${GPU_USAGE}%   ENC ${GPU_ENCODER}%   DEC ${GPU_DECODER}%"
+
+    field "VRAM" \
+        "${GPU_MEM_USED} / ${GPU_MEM_TOTAL} MB"
+
+    field "Temp" \
+        "${GPU_TEMP} ºC   ${GPU_POWER} W" \
+        "$TEMP_COLOR"
+
+    section "● STATUS"
+
+    field "Status" "● $STATUS_TEXT" "$GREEN"
+    field "Finish" "$FINISH_TIME"
+    field "PID" "$PID"
 
     echo
-    echo -e "${BOLD}GPU${RESET}"
-    echo
-
-    printf "%-12s %s\n" "Model:" "$GPU_NAME"
-    printf "%-12s %s%%   ENC %s%%   DEC %s%%\n" \
-        "Usage:" \
-        "$GPU_USAGE" \
-        "$GPU_ENCODER" \
-        "$GPU_DECODER"
-
-    printf "%-12s %s / %s MB\n" \
-        "VRAM:" \
-        "$GPU_MEM_USED" \
-        "$GPU_MEM_TOTAL"
-
-    printf "%-12s %b%s ºC%b   %s W\n" \
-        "Temp:" \
-        "$TEMP_COLOR" \
-        "$GPU_TEMP" \
-        "$RESET" \
-        "$GPU_POWER"
-
-    echo
-    echo "$LINE"
-
-    echo
-    printf "%-12s %b●%b %s\n" \
-        "Status:" \
-        "$GREEN" \
-        "$RESET" \
-        "$STATUS_TEXT"
-
-    printf "%-12s %s\n" "Finish:" "$FINISH_TIME"
-    printf "%-12s %s\n" "PID:" "$PID"
-
-    echo
+    printf '\e[J'
 }
 
 draw_queue()
@@ -522,19 +490,17 @@ draw_queue()
 
 draw_idle_screen()
 {
-    clear
+    printf '\e[H'
 
-    echo -e "${BLUE}${BOLD}"
-    echo "══════════════════════════════════════════════════════════════════════════════"
-    echo "                           MONITOR"
-    echo "══════════════════════════════════════════════════════════════════════════════"
-    echo -e "${RESET}"
+    title "🎬  FFmpeg Auto Transcoder"
+
+    section "⏸ IDLE"
+
+    field "Status" "Waiting for new movies..." "$YELLOW"
 
     echo
-    echo -e "${YELLOW}●${RESET} No encoding job is currently running."
-    echo
-    echo "Waiting for new movies..."
-    echo
+
+    printf '\e[J'
 }
 
 ###############################################################################
@@ -543,21 +509,22 @@ draw_idle_screen()
 
 draw_service_stopped()
 {
-    clear
+    printf '\e[H'
 
-    echo -e "${RED}${BOLD}"
-    echo "══════════════════════════════════════════════════════════════════════════════"
-    echo "                           MONITOR"
-    echo "══════════════════════════════════════════════════════════════════════════════"
-    echo -e "${RESET}"
+    title "🎬  FFmpeg Auto Transcoder"
 
-    echo
-    echo -e "${RED}●${RESET} The transcoding service is stopped."
+    section "⛔ SERVICE"
+
+    field "Status" "Transcoder service stopped" "$RED"
+
     echo
     echo "Start it with:"
     echo
     echo "sudo systemctl start transcoder.service"
+
     echo
+
+    printf '\e[J'
 }
 
 ###############################################################################
@@ -565,6 +532,7 @@ draw_service_stopped()
 ###############################################################################
 
 tput civis
+printf '\e[2J\e[H'
 
 while true
 do
@@ -594,3 +562,4 @@ do
 
     sleep "$REFRESH"
 done
+

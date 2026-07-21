@@ -56,6 +56,44 @@ value()
     printf "${WHITE}%s${RST}" "$1"
 }
 
+field()
+{
+    local name=$1
+    local content=$2
+    local content_color=${3:-$WHITE}
+    local width=${4:-12}
+
+    printf "%b%-*s%b %b%s%b\n" \
+        "$GRAY" \
+        "$width" \
+        "${name}:" \
+        "$RST" \
+        "$content_color" \
+        "$content" \
+        "$RST"
+}
+
+progress_field()
+{
+    local name=$1
+    local bar=$2
+    local percent=$3
+    local bar_color=$4
+    local label_width=${5:-12}
+    local percent_width=${6:-8}
+
+    printf "%b%-*s%b %b%s%b %*.2f %%\n" \
+        "$GRAY" \
+        "$label_width" \
+        "${name}:" \
+        "$RST" \
+        "$bar_color" \
+        "$bar" \
+        "$RST" \
+        "$((percent_width - 2))" \
+        "$percent"
+}
+
 ok()
 {
     printf "${GREEN}%s${RST}" "$1"
@@ -80,16 +118,17 @@ separator()
 {
     local cols
 
-    cols=$(tput cols 2>/dev/null)
+    cols=$(tput cols 2>/dev/null || true)
 
-    if [[ ! "$cols" =~ ^[0-9]+$ ]] || (( cols < 40 )); then
+    if [[ ! "$cols" =~ ^[0-9]+$ ]]; then
         cols=80
     fi
 
+    # Reservamos una columna para evitar el salto automático.
+    (( cols > 1 )) && cols=$((cols - 1))
+
     printf "%b" "$BLUE"
-
     printf '━%.0s' $(seq 1 "$cols")
-
     printf "%b\n" "$RST"
 }
 
@@ -97,11 +136,14 @@ terminal_width()
 {
     local cols
 
-    cols=$(tput cols 2>/dev/null)
+    cols=$(tput cols 2>/dev/null || true)
 
-    if [[ ! "$cols" =~ ^[0-9]+$ ]] || (( cols < 80 )); then
+    if [[ ! "$cols" =~ ^[0-9]+$ ]]; then
         cols=80
     fi
+
+    # Reservamos una columna para evitar el salto automático.
+    (( cols > 1 )) && cols=$((cols - 1))
 
     printf "%d" "$cols"
 }
