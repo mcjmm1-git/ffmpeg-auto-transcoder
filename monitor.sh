@@ -12,8 +12,6 @@ source "$SCRIPT_DIR/lib/theme.sh"
 
 set -Euo pipefail
 
-trap 'tput cnorm' EXIT
-
 trap 'echo "ERROR: line $LINENO: $BASH_COMMAND"' ERR
 
 export LC_NUMERIC=C
@@ -531,7 +529,10 @@ draw_service_stopped()
 # MAIN LOOP
 ###############################################################################
 
-tput civis
+trap 'printf "\e[?1049l\e[?25h"' EXIT
+
+printf '\e[?1049h'
+printf '\e[?25l'
 printf '\e[2J\e[H'
 
 while true
