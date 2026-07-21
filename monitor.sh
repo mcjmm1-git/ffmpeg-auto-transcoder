@@ -359,9 +359,23 @@ read_extra()
 # SCREEN
 ###############################################################################
 
+prepare_screen()
+{
+    local current_width
+
+    current_width=$(terminal_width)
+
+    if (( current_width != LAST_TERMINAL_WIDTH )); then
+        printf '\e[2J\e[H'
+        LAST_TERMINAL_WIDTH=$current_width
+    else
+        printf '\e[H'
+    fi
+}
+
 draw_screen()
 {
-    printf '\e[H'
+    prepare_screen
 
     local bar
     local cols
@@ -490,7 +504,7 @@ draw_queue()
 
 draw_idle_screen()
 {
-    printf '\e[H'
+    prepare_screen
 
     title "🎬  FFmpeg Auto Transcoder"
 
@@ -509,7 +523,7 @@ draw_idle_screen()
 
 draw_service_stopped()
 {
-    printf '\e[H'
+    prepare_screen
 
     title "🎬  FFmpeg Auto Transcoder"
 
@@ -531,6 +545,7 @@ draw_service_stopped()
 # MAIN LOOP
 ###############################################################################
 
+LAST_TERMINAL_WIDTH=0
 tput civis
 printf '\e[2J\e[H'
 
