@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# Configuration loader.
+# Loads the system configuration file when available.
+# Docker deployments fall back to environment variables.
+
 CONFIG_FILE="/etc/ffmpeg-auto-transcoder/config.sh"
 
 # Load the system configuration if available.

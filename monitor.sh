@@ -502,11 +502,22 @@ draw_service_stopped()
     echo
     echo "Start it with:"
     echo
-    echo "sudo systemctl start transcoder.service"
+    echo "docker compose up -d ffmpeg-auto-transcoder"
 
     echo
 
     printf '\e[J'
+}
+
+transcoder_is_running()
+{
+    if command -v systemctl >/dev/null 2>&1 &&
+       systemctl list-unit-files transcoder.service >/dev/null 2>&1
+    then
+        if ! transcoder_is_running; then
+    else
+        pgrep -f '[t]ranscoder.sh' >/dev/null 2>&1
+    fi
 }
 
 ###############################################################################
@@ -521,7 +532,7 @@ printf '\e[2J\e[H'
 
 while true
 do
-    if ! systemctl is-active --quiet transcoder.service; then
+    if ! transcoder_is_running; then
         draw_service_stopped
         sleep "$REFRESH"
         continue

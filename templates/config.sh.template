@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# User configuration template.
+# During installation this file is customized and installed as:
+# /etc/ffmpeg-auto-transcoder/config.sh
+
 ###############################################################################
 # GENERAL CONFIGURATION
 ###############################################################################

@@ -14,6 +14,7 @@ RUN apt-get update && \
         jq \
         curl \
         bc \
+        ttyd \
         ca-certificates && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -30,6 +31,9 @@ RUN chmod +x \
     monitor-web.sh \
     lib/config.sh \
     lib/tmdb.sh \
-    lib/omdb.sh
+    lib/omdb.sh \
+    deploy/docker/docker-entrypoint.sh
 
-ENTRYPOINT ["./transcoder.sh"]
+ENTRYPOINT ["./deploy/docker/docker-entrypoint.sh"]
+
+CMD ["./transcoder.sh"]

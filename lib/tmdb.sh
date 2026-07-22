@@ -19,14 +19,20 @@ normalize_filename()
     TITLE=$(basename "$FILE")
     TITLE="${TITLE%.*}"
 
-    # Extract year if present
-    YEAR=$(printf '%s\n' "$TITLE" |
-        grep -oE '\((18|19|20)[0-9]{2}\)' |
-        tr -d '()')
+    # Extract year if present: "(1952)" or "1952 Title"
+    YEAR=""
 
-    # Remove only the year enclosed in parentheses
+    if [[ "$TITLE" =~ \(((18|19|20)[0-9]{2})\) ]]; then
+        YEAR="${BASH_REMATCH[1]}"
+    elif [[ "$TITLE" =~ ^((18|19|20)[0-9]{2})([[:space:]_.-]|$) ]]; then
+        YEAR="${BASH_REMATCH[1]}"
+    fi
+
+    # Remove year in parentheses or at the beginning
     TITLE=$(printf '%s\n' "$TITLE" |
-        sed -E 's/\((18|19|20)[0-9]{2}\)//g')
+        sed -E \
+            -e 's/\((18|19|20)[0-9]{2}\)//g' \
+            -e 's/^(18|19|20)[0-9]{2}[[:space:]_.-]+//')
 
     # Remove tags enclosed in square brackets
     TITLE=$(printf '%s\n' "$TITLE" |

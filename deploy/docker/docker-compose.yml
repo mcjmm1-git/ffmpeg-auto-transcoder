@@ -1,4 +1,18 @@
+###############################################################################
+# USER CONFIGURATION
+#
+# Before running "docker compose up -d", update the values marked with:
+# <<< CHANGE
+###############################################################################
+
+###############################################################################
+# Media library location on the host
+# <<< CHANGE
+###############################################################################
+x-host-media-path: &host_media_path "/mnt/dd2"
+
 services:
+
   ffmpeg-auto-transcoder:
 
     container_name: ffmpeg-auto-transcoder
@@ -7,38 +21,123 @@ services:
       context: ../..
       dockerfile: deploy/docker/Dockerfile
 
-    user: "${PUID}:${PGID}"
-
     restart: unless-stopped
 
-    gpus: all
+    ############################################################################
+    # User and group IDs
+    # Run "id" on the host to obtain these values.
+    # <<< CHANGE
+    ############################################################################
+    user: "1000:1000"
 
     environment:
+
+      # Media directory inside the container.
+      # Do not change unless you know what you are doing.
       MEDIA_DIR: /media
 
-      # Target movie size (GB).
+      ##########################################################################
+      # Target movie size (GB)
+      #
       # Increase this value for higher quality.
       # Reduce it to save disk space.
+      # <<< CHANGE
+      ##########################################################################
       TARGET_GB: 20
 
-      # Ignore movies shorter than this duration (minutes).
+      ##########################################################################
+      # Ignore movies shorter than this duration (minutes)
+      # <<< CHANGE
+      ##########################################################################
       TARGET_MIN: 150
 
-      # Minimum video bitrate (bits per second).
+      ##########################################################################
+      # Minimum video bitrate (bits per second)
+      # <<< CHANGE
+      ##########################################################################
       MIN_VIDEO_BPS: 8000000
 
-      # Output resolution.
+      ##########################################################################
+      # Output resolution
       #
+      # 7680 x 4320 = 8K UHD
       # 3840 x 2160 = 4K UHD
       # 2560 x 1440 = 1440p
       # 1920 x 1080 = Full HD
       # 1280 x 720  = HD
       #
+      # <<< CHANGE
+      ##########################################################################
       TARGET_W: 3840
       TARGET_H: 2160
 
-      TMDB_API_KEY: "${TMDB_API_KEY}"
-      OMDB_API_KEY: "${OMDB_API_KEY}"
+      ##########################################################################
+      # API keys
+      #
+      # Get your free API keys from:
+      # https://www.themoviedb.org/settings/api
+      # https://www.omdbapi.com/apikey.aspx
+      #
+      # <<< CHANGE
+      ##########################################################################
+      TMDB_API_KEY: ""
+      OMDB_API_KEY: ""
 
     volumes:
-      - "${HOST_MEDIA}:/media:rw"
+      - type: bind
+        source: *host_media_path
+        target: /media
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities:
+                - gpu
+
+  ffmpeg-monitor:
+
+    container_name: ffmpeg-monitor
+
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+
+    restart: unless-stopped
+
+    depends_on:
+      - ffmpeg-auto-transcoder
+
+    pid: "service:ffmpeg-auto-transcoder"
+
+    command:
+      - ttyd
+      - "-W"
+      - "-p"
+      - "7681"
+      - "./monitor.sh"
+
+    ############################################################################
+    # Web monitor port
+    # Change only if port 9001 is already in use.
+    # Change only the number on the left.
+    # <<< CHANGE
+    ############################################################################
+    ports:
+      - "9002:7681"
+
+    volumes:
+      - type: bind
+        source: *host_media_path
+        target: /media
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities:
+                - gpu
