@@ -34,4 +34,4 @@ RUN chmod +x \
     lib/tmdb.sh \
     lib/omdb.sh
 
-ENTRYPOINT ["./transcoder.sh"]
+CMD ["./transcoder.sh"]

@@ -7,21 +7,24 @@
 
 ###############################################################################
 # Media library location on the host
+#
+# This single host directory contains incoming, processing, library, completed,
+# failed, logs and temp.
 # <<< CHANGE
 ###############################################################################
 x-host-media-path: &host_media_path "/mnt/dd2"
 
 ###############################################################################
-# Time zone used by both containers
-# Use an IANA name such as Europe/Madrid, America/New_York or UTC.
+# Application time zone
+#
+# Use an IANA time zone such as Europe/Madrid, America/New_York or UTC.
+# This value is used by both containers and by the monitor finish-time display.
 # <<< CHANGE
 ###############################################################################
 x-time-zone: &time_zone "Europe/Madrid"
 
 services:
-
   ffmpeg-auto-transcoder:
-
     container_name: ffmpeg-auto-transcoder
 
     build:
@@ -32,38 +35,54 @@ services:
 
     ############################################################################
     # User and group IDs
-    # Run "id" on the host to obtain these values.
+    #
+    # Run "id" on the host and replace both numbers with your UID and GID.
     # <<< CHANGE
     ############################################################################
     user: "1000:1000"
 
     environment:
 
+      ##########################################################################
       # Media directory inside the container.
-      # Do not change unless you know what you are doing.
+      #
+      # Do not change this path. Change x-host-media-path above instead.
+      ##########################################################################
       MEDIA_DIR: /media
+
+      ##########################################################################
+      # Application time zone.
+      #
+      # Both variables are intentionally provided for compatibility with the
+      # container, configuration loader and monitor.
+      ##########################################################################
       TZ: *time_zone
+      TIMEZONE: *time_zone
 
       ##########################################################################
       # Target movie size (GB)
       #
-      # Increase this value for higher quality.
-      # Reduce it to save disk space.
+      # Recommended Full HD profile for a large projector screen:
+      # approximately 16 GB for a 150-minute movie.
+      # Increase for higher quality or reduce to save disk space.
       # <<< CHANGE
       ##########################################################################
-      TARGET_GB: 20
+      TARGET_GB: 16
 
       ##########################################################################
-      # Ignore movies shorter than this duration (minutes)
+      # Reference duration used for dynamic bitrate calculation (minutes)
       # <<< CHANGE
       ##########################################################################
       TARGET_MIN: 150
 
       ##########################################################################
       # Minimum video bitrate (bits per second)
+      #
+      # 12000000 = 12 Mbps.
+      # Recommended for Full HD projection on a large screen.
       # <<< CHANGE
       ##########################################################################
-      MIN_VIDEO_BPS: 8000000
+      MIN_VIDEO_BPS: 12000000
 
       ##########################################################################
       # Output resolution
@@ -76,16 +95,17 @@ services:
       #
       # <<< CHANGE
       ##########################################################################
-      TARGET_W: 3840
-      TARGET_H: 2160
+      TARGET_W: 1920
+      TARGET_H: 1080
 
       ##########################################################################
       # API keys
       #
-      # Get your free API keys from:
+      # Get your personal API keys from:
       # https://www.themoviedb.org/settings/api
       # https://www.omdbapi.com/apikey.aspx
       #
+      # Never commit real API keys to GitHub.
       # <<< CHANGE
       ##########################################################################
       TMDB_API_KEY: ""
@@ -106,7 +126,6 @@ services:
                 - gpu
 
   ffmpeg-monitor:
-
     container_name: ffmpeg-monitor
 
     build:
@@ -118,6 +137,7 @@ services:
     depends_on:
       - ffmpeg-auto-transcoder
 
+    # Share the transcoder PID namespace so monitor.sh can detect its process.
     pid: "service:ffmpeg-auto-transcoder"
 
     command:
@@ -128,12 +148,18 @@ services:
       - "./monitor.sh"
 
     environment:
+
+      ##########################################################################
+      # Use the same media and time-zone configuration as the transcoder.
+      ##########################################################################
       MEDIA_DIR: /media
       TZ: *time_zone
+      TIMEZONE: *time_zone
 
     ############################################################################
     # Web monitor port
-    # Change only if port 9001 is already in use.
+    #
+    # Change only if port 9002 is already in use.
     # Change only the number on the left.
     # <<< CHANGE
     ############################################################################
