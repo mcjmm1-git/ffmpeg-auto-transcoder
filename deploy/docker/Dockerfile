@@ -8,14 +8,15 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV MEDIA_DIR=/media
 
 RUN apt-get update && \
-    apt-get install -y \
+    apt-get install -y --no-install-recommends \
         bash \
         ffmpeg \
         jq \
         curl \
         bc \
         ttyd \
-        ca-certificates && \
+        ca-certificates \
+        tzdata && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -31,9 +32,6 @@ RUN chmod +x \
     monitor-web.sh \
     lib/config.sh \
     lib/tmdb.sh \
-    lib/omdb.sh \
-    deploy/docker/docker-entrypoint.sh
+    lib/omdb.sh
 
-ENTRYPOINT ["./deploy/docker/docker-entrypoint.sh"]
-
-CMD ["./transcoder.sh"]
+ENTRYPOINT ["./transcoder.sh"]
