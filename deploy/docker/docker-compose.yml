@@ -11,6 +11,13 @@
 ###############################################################################
 x-host-media-path: &host_media_path "/mnt/dd2"
 
+###############################################################################
+# Time zone used by both containers
+# Use an IANA name such as Europe/Madrid, America/New_York or UTC.
+# <<< CHANGE
+###############################################################################
+x-time-zone: &time_zone "Europe/Madrid"
+
 services:
 
   ffmpeg-auto-transcoder:
@@ -35,6 +42,7 @@ services:
       # Media directory inside the container.
       # Do not change unless you know what you are doing.
       MEDIA_DIR: /media
+      TZ: *time_zone
 
       ##########################################################################
       # Target movie size (GB)
@@ -118,6 +126,10 @@ services:
       - "-p"
       - "7681"
       - "./monitor.sh"
+
+    environment:
+      MEDIA_DIR: /media
+      TZ: *time_zone
 
     ############################################################################
     # Web monitor port

@@ -16,6 +16,51 @@ trap 'echo "ERROR: line $LINENO: $BASH_COMMAND"' ERR
 
 export LC_NUMERIC=C
 
+###############################################################################
+# LOCAL TIME ZONE
+###############################################################################
+
+configure_monitor_timezone()
+{
+    local configured_tz="${TIMEZONE:-${TZ:-}}"
+    local detected_tz=""
+
+    # Native installations normally provide TIMEZONE through config.sh.
+    # Docker deployments normally provide TZ through docker-compose.yml.
+    if [[ -z "$configured_tz" ]] && command -v timedatectl >/dev/null 2>&1; then
+        detected_tz=$(timedatectl show --property=Timezone --value 2>/dev/null || true)
+    fi
+
+    if [[ -z "$configured_tz" && -n "$detected_tz" ]]; then
+        configured_tz="$detected_tz"
+    fi
+
+    if [[ -z "$configured_tz" && -r /etc/timezone ]]; then
+        configured_tz=$(head -n1 /etc/timezone 2>/dev/null || true)
+    fi
+
+    if [[ -z "$configured_tz" && -L /etc/localtime ]]; then
+        detected_tz=$(readlink -f /etc/localtime 2>/dev/null || true)
+        detected_tz=${detected_tz#*/usr/share/zoneinfo/}
+
+        if [[ -n "$detected_tz" && "$detected_tz" != /etc/localtime ]]; then
+            configured_tz="$detected_tz"
+        fi
+    fi
+
+    if [[ -n "$configured_tz" ]]; then
+        MONITOR_TIMEZONE="$configured_tz"
+    elif [[ -e /etc/localtime ]]; then
+        MONITOR_TIMEZONE=":/etc/localtime"
+    else
+        MONITOR_TIMEZONE="UTC"
+    fi
+
+    export TZ="$MONITOR_TIMEZONE"
+}
+
+configure_monitor_timezone
+
 # Accent colours. CYAN is used for normal progress; the remaining colours
 # continue to come from lib/theme.sh. The fallback keeps the monitor working
 # with older versions of that file.
@@ -474,7 +519,7 @@ calculate_eta()
 
 finish_time()
 {
-    FINISH_TIME=$(date -d "+${ETA} seconds" +"%H:%M:%S")
+    FINISH_TIME=$(TZ="$MONITOR_TIMEZONE" date -d "+${ETA} seconds" +"%H:%M:%S")
 }
 
 ###############################################################################

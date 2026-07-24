@@ -18,6 +18,11 @@
 
 MEDIA_DIR="__MEDIA_DIR__"
 
+# Application time zone. This affects timestamps and ETA/finish-time display
+# without changing the server's system-wide time zone.
+TIMEZONE="__TIMEZONE__"
+export TZ="$TIMEZONE"
+
 ###############################################################################
 # DIRECTORIES
 ###############################################################################
@@ -25,6 +30,8 @@ MEDIA_DIR="__MEDIA_DIR__"
 INCOMING="$MEDIA_DIR/incoming"
 PROCESSING="$MEDIA_DIR/processing"
 LIBRARY="$MEDIA_DIR/library"
+FILMS="$LIBRARY/films"
+SERIES="$LIBRARY/series"
 COMPLETED="$MEDIA_DIR/completed"
 FAILED="$MEDIA_DIR/failed"
 LOGS="$MEDIA_DIR/logs"

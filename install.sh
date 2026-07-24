@@ -7,7 +7,7 @@
 
 set -e
 
-VERSION="1.1.0"
+VERSION="1.3.0"
 
 DEFAULT_INSTALL_DIR="/opt/ffmpeg-auto-transcoder"
 
@@ -20,6 +20,7 @@ MEDIA_DIR=""
 REAL_USER=""
 TMDB_API_KEY=""
 OMDB_API_KEY=""
+TIMEZONE=""
 
 ###############################################################################
 # FUNCTIONS
@@ -44,6 +45,26 @@ detect_user() {
 
     REAL_USER="${SUDO_USER:-$(logname)}"
 
+}
+
+detect_system_timezone() {
+
+    local detected=""
+
+    if command -v timedatectl >/dev/null 2>&1; then
+        detected=$(timedatectl show --property=Timezone --value 2>/dev/null || true)
+    fi
+
+    if [[ -z "$detected" && -f /etc/timezone ]]; then
+        detected=$(head -n1 /etc/timezone 2>/dev/null || true)
+    fi
+
+    if [[ -z "$detected" && -L /etc/localtime ]]; then
+        detected=$(readlink -f /etc/localtime 2>/dev/null || true)
+        detected=${detected#*/usr/share/zoneinfo/}
+    fi
+
+    TIMEZONE=${detected:-UTC}
 }
 
 detect_package_manager() {
@@ -235,7 +256,8 @@ ask_media_directory() {
         mkdir -p \
             "$MEDIA_DIR/incoming" \
             "$MEDIA_DIR/processing" \
-            "$MEDIA_DIR/library" \
+            "$MEDIA_DIR/library/films" \
+            "$MEDIA_DIR/library/series" \
             "$MEDIA_DIR/completed" \
             "$MEDIA_DIR/failed" \
             "$MEDIA_DIR/logs" \
@@ -259,6 +281,30 @@ ask_api_keys()
     read -rp "OMDb API key: " OMDB_API_KEY
 }
 
+ask_timezone()
+{
+    local selected
+
+    while true; do
+        echo
+        echo "Application time zone"
+        echo "Examples: Europe/Madrid, America/New_York, UTC"
+        echo
+
+        read -rp "Time zone [$TIMEZONE]: " selected
+        selected=${selected:-$TIMEZONE}
+
+        if [[ "$selected" == "UTC" || -e "/usr/share/zoneinfo/$selected" ]]; then
+            TIMEZONE="$selected"
+            break
+        fi
+
+        echo
+        echo "Invalid time zone: $selected"
+        echo "Use an IANA time zone such as Europe/Madrid."
+    done
+}
+
 show_summary() {
 
     clear
@@ -274,6 +320,8 @@ show_summary() {
     echo "Installation : $INSTALL_DIR"
     echo
     echo "Media library: $MEDIA_DIR"
+    echo
+    echo "Time zone    : $TIMEZONE"
     echo
 
 }
@@ -352,6 +400,7 @@ generate_config() {
 
     sed \
         -e "s|__MEDIA_DIR__|$MEDIA_DIR|g" \
+        -e "s|__TIMEZONE__|$TIMEZONE|g" \
         -e "s|YOUR_TMDB_API_KEY|$TMDB_API_KEY|g" \
         -e "s|YOUR_OMDB_API_KEY|$OMDB_API_KEY|g" \
         "$INSTALL_DIR/templates/config.sh.template" \
@@ -372,6 +421,7 @@ save_install_info() {
 INSTALL_DIR="$INSTALL_DIR"
 MEDIA_DIR="$MEDIA_DIR"
 REAL_USER="$REAL_USER"
+TIMEZONE="$TIMEZONE"
 VERSION="$VERSION"
 EOF
 
@@ -436,6 +486,9 @@ echo
 echo "Media library:"
 echo "  $MEDIA_DIR"
 echo
+echo "Application time zone:"
+echo "  $TIMEZONE"
+echo
 
 echo "Service status:"
 echo
@@ -445,22 +498,6 @@ echo
 echo "Web monitor:"
 echo
 echo "  http://SERVER_IP:9001"
-echo
-
-echo "⚠ IMPORTANT"
-echo
-echo "Edit the following file:"
-echo
-echo "  /etc/ffmpeg-auto-transcoder/config.sh"
-echo
-echo "and enter your API keys:"
-echo
-echo "  • TMDB_API_KEY"
-echo "  • OMDB_API_KEY"
-echo
-echo "Without these keys, the application"
-echo "will not be able to identify and"
-echo "organize your movies correctly."
 echo
 
 echo "Enjoy! 😊"
@@ -476,6 +513,8 @@ check_root
 
 detect_user
 
+detect_system_timezone
+
 detect_package_manager
 
 check_nvidia
@@ -487,6 +526,8 @@ ask_install_directory
 ask_media_directory
 
 ask_api_keys
+
+ask_timezone
 
 show_summary
 
