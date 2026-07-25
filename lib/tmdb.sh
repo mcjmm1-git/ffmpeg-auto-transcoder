@@ -58,7 +58,7 @@ detect_media_type()
     SEASON_NUMBER=""
     EPISODE_NUMBER=""
 
-    # Compact chapter numbering used by some releases:
+    # Compact Spanish chapter numbering:
     # Silo [HDTV 720p][Cap.302] -> season 3, episode 02
     # Series Capitulo 1203.mkv   -> season 12, episode 03
     if [[ "$NAME" =~ [Cc]ap[^0-9]*([0-9]{3,4})([^0-9]|$) ]]; then
@@ -92,7 +92,7 @@ detect_media_type()
         return
     fi
 
-    # Long English and Spanish forms.
+    # Long English/Spanish forms.
     if [[ "$NAME" =~ [Ss]eason[[:space:]._-]*([0-9]{1,2})[[:space:]._-]*[Ee]pisode[[:space:]._-]*([0-9]{1,3}) ]]; then
         MEDIA_TYPE="episode"
         SEASON_NUMBER=$((10#${BASH_REMATCH[1]}))
@@ -115,8 +115,8 @@ normalize_filename()
 {
     local FILE="$1"
     local MATCHED_SUFFIX=""
-    local RELEASE_TAGS
-    local CLEANED
+    local METADATA_WORDS
+    local RELEASE_CUT_TAGS
 
     detect_media_type "$FILE"
 
@@ -160,16 +160,23 @@ normalize_filename()
     TITLE=$(printf '%s\n' "$TITLE" |
         tr '._' '  ')
 
-    # Remove release tags using portable extended regular expressions.
-    RELEASE_TAGS='4320p|2160p|1440p|1080p|720p|480p|x264|x265|h264|h265|hevc|avc|blu-ray|bluray|bdrip|brrip|web-dl|webdl|webrip|hdrip|dvdrip|remux|hdr10|hdr|dv|dolby[[:space:]]+vision|aac|ac3|eac3|e-ac3|dts|dts-hd|truehd|atmos|multi|spanish|castellano|dual'
+    # Remove parenthesized release/language metadata while preserving genuine
+    # alternate titles. Example: (Spanish English Subs) is metadata, while
+    # (28 Years Later) is kept as part of the title.
+    METADATA_WORDS='subs?|subtitles?|subbed|dubbed|spanish|castellano|english|latino|dual|multi|esp|eng|aac|ac3|eac3|dts|truehd|atmos'
+    TITLE=$(printf '%s\n' "$TITLE" |
+        sed -E "s/\([^)]*(${METADATA_WORDS})[^)]*\)//Ig")
 
-    while true; do
-        CLEANED=$(printf '%s\n' "$TITLE" |
-            sed -E "s/(^|[[:space:]])(${RELEASE_TAGS})([[:space:]]|$)/ /Ig")
+    # Once a real release marker is reached, everything after it is technical
+    # metadata or a release-group name. This also handles joined forms such as
+    # x264-AC3 without damaging hyphens in movie titles such as Spider-Man.
+    RELEASE_CUT_TAGS='4320p|2160p|1440p|1080p|720p|480p|x264|x265|h264|h265|hevc|avc|blu-ray|bluray|bdrip|brrip|web-dl|webdl|webrip|hdrip|dvdrip|remux|hdr10|hdr|dolby[[:space:]]+vision'
+    TITLE=$(printf '%s\n' "$TITLE" |
+        sed -E "s/(^|[[:space:]_-])(${RELEASE_CUT_TAGS})([[:space:]_-]|$).*$//I")
 
-        [[ "$CLEANED" == "$TITLE" ]] && break
-        TITLE="$CLEANED"
-    done
+    # Remove a trailing release-group credit when no technical tag preceded it.
+    TITLE=$(printf '%s\n' "$TITLE" |
+        sed -E 's/[[:space:]]+[Bb][Yy][[:space:]]+[[:alnum:]_.-]+[[:space:]]*$//')
 
     # Remove separators and normalize whitespace left by the cleanup.
     TITLE=$(printf '%s\n' "$TITLE" |
@@ -182,6 +189,7 @@ normalize_filename()
 
     [[ -n "$TITLE" ]] || TITLE="Unknown"
 }
+
 ###############################################################################
 # SEARCH MOVIE
 ###############################################################################
@@ -199,7 +207,7 @@ tmdb_search_movie()
             --retry-delay 1 \
                 --get \
                 --data-urlencode "api_key=${TMDB_API_KEY}" \
-                --data-urlencode "language=en-US" \
+                --data-urlencode "language=es-ES" \
                 --data-urlencode "query=${TITLE}" \
                 --data-urlencode "year=${YEAR}" \
                 "https://api.themoviedb.org/3/search/movie"
@@ -213,7 +221,7 @@ tmdb_search_movie()
             --retry-delay 1 \
                 --get \
                 --data-urlencode "api_key=${TMDB_API_KEY}" \
-                --data-urlencode "language=en-US" \
+                --data-urlencode "language=es-ES" \
                 --data-urlencode "query=${TITLE}" \
                 "https://api.themoviedb.org/3/search/movie"
         )
@@ -230,7 +238,7 @@ tmdb_search_movie()
                 --retry-delay 1 \
                 --get \
                 --data-urlencode "api_key=${TMDB_API_KEY}" \
-                --data-urlencode "language=en-US" \
+                --data-urlencode "language=es-ES" \
                 --data-urlencode "query=${TITLE}" \
                 "https://api.themoviedb.org/3/search/movie"
         )
@@ -268,7 +276,7 @@ tmdb_search_tv()
             --retry-delay 1 \
                 --get \
                 --data-urlencode "api_key=${TMDB_API_KEY}" \
-                --data-urlencode "language=en-US" \
+                --data-urlencode "language=es-ES" \
                 --data-urlencode "query=${TITLE}" \
                 --data-urlencode "first_air_date_year=${YEAR}" \
                 "https://api.themoviedb.org/3/search/tv"
@@ -282,7 +290,7 @@ tmdb_search_tv()
             --retry-delay 1 \
                 --get \
                 --data-urlencode "api_key=${TMDB_API_KEY}" \
-                --data-urlencode "language=en-US" \
+                --data-urlencode "language=es-ES" \
                 --data-urlencode "query=${TITLE}" \
                 "https://api.themoviedb.org/3/search/tv"
         )
@@ -311,7 +319,7 @@ tmdb_search_tv()
             --retry-delay 1 \
             --get \
             --data-urlencode "api_key=${TMDB_API_KEY}" \
-            --data-urlencode "language=en-US" \
+            --data-urlencode "language=es-ES" \
             "https://api.themoviedb.org/3/tv/${SERIES_ID}/season/${SEASON_NUMBER}/episode/${EPISODE_NUMBER}"
     )
 
@@ -390,7 +398,7 @@ tmdb_episode_details()
             --retry-delay 1 \
         --get \
         --data-urlencode "api_key=${TMDB_API_KEY}" \
-        --data-urlencode "language=en-US" \
+        --data-urlencode "language=es-ES" \
         "https://api.themoviedb.org/3/tv/${SERIES_ID}/season/${SEASON}/episode/${EPISODE}"
 }
 
