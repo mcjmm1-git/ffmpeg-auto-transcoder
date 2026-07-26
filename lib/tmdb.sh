@@ -117,6 +117,7 @@ normalize_filename()
     local MATCHED_SUFFIX=""
     local METADATA_WORDS
     local RELEASE_CUT_TAGS
+    local YEAR_MATCH=""
 
     detect_media_type "$FILE"
 
@@ -125,24 +126,22 @@ normalize_filename()
 
     YEAR=""
 
-    # Handle a trailing metadata block containing a year, for example:
-    # Movie Name (1952)
-    # Movie Name (Director Name, 1952)
-    if [[ "$TITLE" =~ \([^()]*((18|19|20)[0-9]{2})[^()]*\)[[:space:]]*$ ]]; then
-        MATCHED_SUFFIX="${BASH_REMATCH[0]}"
-        YEAR="${BASH_REMATCH[1]}"
-        TITLE="${TITLE%"$MATCHED_SUFFIX"}"
-
-    # Also accept a plain (YEAR) block before release tags.
-    elif [[ "$TITLE" =~ \(((18|19|20)[0-9]{2})\) ]]; then
-        MATCHED_SUFFIX="${BASH_REMATCH[0]}"
-        YEAR="${BASH_REMATCH[1]}"
-        TITLE="${TITLE/"$MATCHED_SUFFIX"/}"
+    # Extract the first plausible release year wherever it appears in the
+    # filename. This supports forms such as:
+    #   Movie (1953)
+    #   Movie (Director, 1953)
+    #   Movie (Director.1953)
+    #   (1953) Movie
+    #   Movie [1953]
+    if [[ "$TITLE" =~ (^|[^0-9])((18|19|20)[0-9]{2})([^0-9]|$) ]]; then
+        YEAR_MATCH="${BASH_REMATCH[2]}"
+        YEAR="$YEAR_MATCH"
     fi
 
     # Remove season/episode code and everything following it.
     if [[ "$MEDIA_TYPE" == "episode" ]]; then
-        TITLE=$(printf '%s\n' "$TITLE" |
+        TITLE=$(printf '%s
+' "$TITLE" |
             sed -E \
                 -e 's/[Ss][0-9]{1,2}[[:space:]._-]*[Ee][Pp]?[[:space:]._-]*[0-9]{1,3}.*$//' \
                 -e 's/[0-9]{1,2}[[:space:]._-]*[xX][[:space:]._-]*[0-9]{1,3}.*$//' \
@@ -152,35 +151,61 @@ normalize_filename()
                 -e 's/[[:space:]_.-]*[Cc]ap[^0-9]*[0-9]{3,4}.*$//')
     fi
 
-    # Remove tags enclosed in square brackets.
-    TITLE=$(printf '%s\n' "$TITLE" |
+    # Remove bracketed blocks. They are normally alternate titles, quality,
+    # language or release tags. The main title before the block is preferred
+    # for the first TMDb query.
+    TITLE=$(printf '%s
+' "$TITLE" |
         sed -E 's/\[[^]]+\]//g')
 
+    # Remove parenthesized blocks that contain the detected year. This strips
+    # director/year metadata such as "(George Cukor.1953)" without leaving the
+    # director attached to the title.
+    if [[ -n "$YEAR" ]]; then
+        TITLE=$(printf '%s
+' "$TITLE" |
+            sed -E "s/\([^)]*${YEAR}[^)]*\)//g")
+    fi
+
     # Replace common filename separators with spaces.
-    TITLE=$(printf '%s\n' "$TITLE" |
+    TITLE=$(printf '%s
+' "$TITLE" |
         tr '._' '  ')
 
     # Remove parenthesized release/language metadata while preserving genuine
-    # alternate titles. Example: (Spanish English Subs) is metadata, while
-    # (28 Years Later) is kept as part of the title.
+    # alternate titles.
     METADATA_WORDS='subs?|subtitles?|subbed|dubbed|spanish|castellano|english|latino|dual|multi|esp|eng|aac|ac3|eac3|dts|truehd|atmos'
-    TITLE=$(printf '%s\n' "$TITLE" |
+    TITLE=$(printf '%s
+' "$TITLE" |
         sed -E "s/\([^)]*(${METADATA_WORDS})[^)]*\)//Ig")
 
     # Once a real release marker is reached, everything after it is technical
-    # metadata or a release-group name. This also handles joined forms such as
-    # x264-AC3 without damaging hyphens in movie titles such as Spider-Man.
-    RELEASE_CUT_TAGS='4320p|2160p|1440p|1080p|720p|480p|x264|x265|h264|h265|hevc|avc|blu-ray|bluray|bdrip|brrip|web-dl|webdl|webrip|hdrip|dvdrip|remux|hdr10|hdr|dolby[[:space:]]+vision'
-    TITLE=$(printf '%s\n' "$TITLE" |
+    # metadata or a release-group name.
+    RELEASE_CUT_TAGS='4320p|2160p|1440p|1080p|720p|480p|xvid|x264|x265|h264|h265|hevc|avc|blu-ray|bluray|bdrip|brrip|web-dl|webdl|webrip|hdrip|dvd-rip|dvdrip|remux|hdr10|hdr|dolby[[:space:]]+vision'
+    TITLE=$(printf '%s
+' "$TITLE" |
         sed -E "s/(^|[[:space:]_-])(${RELEASE_CUT_TAGS})([[:space:]_-]|$).*$//I")
 
-    # Remove a trailing release-group credit when no technical tag preceded it.
-    TITLE=$(printf '%s\n' "$TITLE" |
-        sed -E 's/[[:space:]]+[Bb][Yy][[:space:]]+[[:alnum:]_.-]+[[:space:]]*$//')
-
-    # Remove separators and normalize whitespace left by the cleanup.
-    TITLE=$(printf '%s\n' "$TITLE" |
+    # Remove common trailing uploader/release-group credits.
+    TITLE=$(printf '%s
+' "$TITLE" |
         sed -E \
+            -e 's/[[:space:]]+[Bb][Yy][[:space:]]+[^[:space:]]+[[:space:]]*$//' \
+            -e 's/[[:space:]]+[Pp]or[[:space:]]+[^[:space:]]+[[:space:]]*$//' \
+            -e 's/[[:space:]]*\([^)]*\.(com|org|net|es)\)[[:space:]]*$//I')
+
+    # Remove a bare year left outside brackets/parentheses.
+    if [[ -n "$YEAR" ]]; then
+        TITLE=$(printf '%s
+' "$TITLE" |
+            sed -E "s/(^|[[:space:]_.-])${YEAR}([[:space:]_.-]|$)/ /g")
+    fi
+
+    # Normalize punctuation and whitespace left by cleanup.
+    TITLE=$(printf '%s
+' "$TITLE" |
+        sed -E \
+            -e 's/[[:space:]]*[-–—]+[[:space:]]*/ - /g' \
             -e 's/[[:space:]_-]+$//' \
             -e 's/^[[:space:]_-]+//' \
             -e 's/[[:space:]]+/ /g' \
