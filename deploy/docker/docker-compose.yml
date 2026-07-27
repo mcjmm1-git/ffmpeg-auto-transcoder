@@ -6,13 +6,29 @@
 ###############################################################################
 
 ###############################################################################
-# Media library location on the host
-#
-# This single host directory contains incoming, processing, library, completed,
-# failed, logs and temp.
+# Media library locations on the host
 # <<< CHANGE
 ###############################################################################
-x-host-media-path: &host_media_path "/mnt/dd2"
+x-media-paths:
+  dd2: &media_dd2 "/mnt/dd2"
+  dd1: &media_dd1 "/mnt/dd1"
+  dd3: &media_dd3 "/mnt/dd3"
+  elements: &media_elements "/mnt/elements"
+
+###############################################################################
+# Input directory inside the containers
+#
+# All source videos enter through elements.
+# Logs, progress and completed originals also use this disk.
+###############################################################################
+x-media-dirs: &media_dirs "/media/elements"
+
+###############################################################################
+# Output directories inside the containers
+#
+# Transcoded files may only be stored on these disks.
+###############################################################################
+x-output-media-dirs: &output_media_dirs "/media/dd1:/media/dd2:/media/dd3"
 
 ###############################################################################
 # Application time zone
@@ -44,11 +60,13 @@ services:
     environment:
 
       ##########################################################################
-      # Media directory inside the container.
+      # Media libraries inside the container.
       #
-      # Do not change this path. Change x-host-media-path above instead.
+      # Use colon-separated paths. Their order must match the intended scan
+      # order. The first path also stores shared monitor state and logs.
       ##########################################################################
-      MEDIA_DIR: /media
+      MEDIA_DIRS: *media_dirs
+      OUTPUT_MEDIA_DIRS: *output_media_dirs
 
       ##########################################################################
       # Application time zone.
@@ -60,6 +78,18 @@ services:
       TIMEZONE: *time_zone
 
       ##########################################################################
+      # Minimum free space that must remain on an output disk.
+      # <<< CHANGE
+      ##########################################################################
+      MIN_FREE_GB: 30
+
+      ##########################################################################
+      # Additional estimated space for copied audio and size variations.
+      # <<< CHANGE
+      ##########################################################################
+      OUTPUT_SPACE_MARGIN_GB: 5
+
+      ##########################################################################
       # Target movie size (GB)
       #
       # Recommended Full HD profile for a large projector screen:
@@ -67,7 +97,7 @@ services:
       # Increase for higher quality or reduce to save disk space.
       # <<< CHANGE
       ##########################################################################
-      TARGET_GB: 16
+      TARGET_GB: 20
 
       ##########################################################################
       # Reference duration used for dynamic bitrate calculation (minutes)
@@ -82,7 +112,7 @@ services:
       # Recommended for Full HD projection on a large screen.
       # <<< CHANGE
       ##########################################################################
-      MIN_VIDEO_BPS: 12000000
+      MIN_VIDEO_BPS: 8000000
 
       ##########################################################################
       # Output resolution
@@ -95,8 +125,8 @@ services:
       #
       # <<< CHANGE
       ##########################################################################
-      TARGET_W: 1920
-      TARGET_H: 1080
+      TARGET_W: 3840
+      TARGET_H: 2160
 
       ##########################################################################
       # API keys
@@ -105,7 +135,7 @@ services:
       # https://www.themoviedb.org/settings/api
       # https://www.omdbapi.com/apikey.aspx
       #
-      # Never commit real API keys to GitHub.
+      # Never commit real API keys to a public repository.
       # <<< CHANGE
       ##########################################################################
       TMDB_API_KEY: ""
@@ -113,8 +143,20 @@ services:
 
     volumes:
       - type: bind
-        source: *host_media_path
-        target: /media
+        source: *media_dd2
+        target: /media/dd2
+
+      - type: bind
+        source: *media_dd1
+        target: /media/dd1
+
+      - type: bind
+        source: *media_dd3
+        target: /media/dd3
+
+      - type: bind
+        source: *media_elements
+        target: /media/elements
 
     deploy:
       resources:
@@ -152,7 +194,8 @@ services:
       ##########################################################################
       # Use the same media and time-zone configuration as the transcoder.
       ##########################################################################
-      MEDIA_DIR: /media
+      MEDIA_DIRS: *media_dirs
+      OUTPUT_MEDIA_DIRS: *output_media_dirs
       TZ: *time_zone
       TIMEZONE: *time_zone
 
@@ -168,8 +211,20 @@ services:
 
     volumes:
       - type: bind
-        source: *host_media_path
-        target: /media
+        source: *media_dd2
+        target: /media/dd2
+
+      - type: bind
+        source: *media_dd1
+        target: /media/dd1
+
+      - type: bind
+        source: *media_dd3
+        target: /media/dd3
+
+      - type: bind
+        source: *media_elements
+        target: /media/elements
 
     deploy:
       resources:

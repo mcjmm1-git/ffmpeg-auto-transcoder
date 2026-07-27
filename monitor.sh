@@ -17,7 +17,7 @@ trap 'echo "ERROR: line $LINENO: $BASH_COMMAND"' ERR
 export LC_NUMERIC=C
 
 ###############################################################################
-# LOCAL TIME ZONE
+# ZONA HORARIA LOCAL
 ###############################################################################
 
 configure_monitor_timezone()
@@ -73,8 +73,6 @@ configure_monitor_timezone
 # CONFIGURATION
 ###############################################################################
 
-# Public/GitHub layout: one MEDIA_DIR tree with one incoming directory,
-# one processing directory and one final library directory.
 PROGRESS_FILE="$LOGS/ffmpeg.progress"
 EXTRA_FILE="$LOGS/ffmpeg.extra"
 
@@ -158,19 +156,19 @@ calculate_colors()
 update_status()
 {
     if [[ ! -f "$PROGRESS_FILE" ]]; then
-        DISPLAY_STATUS="Waiting for FFmpeg"
+        DISPLAY_STATUS="Esperando a FFmpeg"
         STATUS_COLOR=$YELLOW
 
     elif [[ "$STATUS" == "end" ]]; then
-        DISPLAY_STATUS="Finishing"
+        DISPLAY_STATUS="Finalizando"
         STATUS_COLOR=$GREEN
 
     elif (( FRAME == 0 )); then
-        DISPLAY_STATUS="Waiting for first frames"
+        DISPLAY_STATUS="Esperando primeros fotogramas"
         STATUS_COLOR=$YELLOW
 
     else
-        DISPLAY_STATUS="Encoding"
+        DISPLAY_STATUS="Codificando"
         STATUS_COLOR=$CYAN
     fi
 }
@@ -270,7 +268,7 @@ ui_section()
 ###############################################################################
 
 # All values begin at this absolute terminal column. Using a cursor column
-# keeps every value aligned regardless of label length or UTF-8 characters.
+# avoids UTF-8 labels such as "Película" shifting the following value.
 UI_VALUE_COLUMN=16
 UI_LABEL_WIDTH=$((UI_VALUE_COLUMN - 1))
 UI_PERCENT_WIDTH=8
@@ -436,7 +434,7 @@ read_gpu()
 {
     local data
 
-    GPU_NAME="Unavailable"
+    GPU_NAME="No disponible"
     GPU_USAGE=0
     GPU_ENCODER=0
     GPU_DECODER=0
@@ -532,7 +530,7 @@ read_extra()
     CURRENT_Q="0.0"
     START_EPOCH=0
 
-    CURRENT_FILE="Waiting..."
+    CURRENT_FILE="Esperando..."
     TITLE=""
     RAW_DUR=0
     PID="-"
@@ -569,38 +567,38 @@ draw_screen()
     title_width=$((cols - UI_LABEL_WIDTH))
     (( title_width < 12 )) && title_width=12
 
-    display_title=$(truncate_text "${TITLE:-Untitled}" "$title_width")
-    display_file=$(truncate_text "${CURRENT_FILE:-No file}" "$title_width")
+    display_title=$(truncate_text "${TITLE:-Sin título}" "$title_width")
+    display_file=$(truncate_text "${CURRENT_FILE:-Sin archivo}" "$title_width")
 
     ui_title "🎬  FFmpeg Auto Transcoder"
 
-    aligned_field "Status" "● $DISPLAY_STATUS" "$STATUS_COLOR"
-    aligned_field "Movie" "$display_title"
-    aligned_field "File" "$display_file"
+    aligned_field "Estado" "● $DISPLAY_STATUS" "$STATUS_COLOR"
+    aligned_field "Película" "$display_title"
+    aligned_field "Archivo" "$display_file"
 
-    ui_section "⚙ PROGRESS"
+    ui_section "⚙ PROGRESO"
 
     bar_width=$((cols - UI_LABEL_WIDTH - UI_PERCENT_WIDTH - 1))
     (( bar_width < 8 )) && bar_width=8
 
     bar=$(create_progress_bar "$PROGRESS_INT" "$bar_width")
-    aligned_progress_field "Progress" "$bar" "$PERCENT" "$BAR_COLOR"
+    aligned_progress_field "Progreso" "$bar" "$PERCENT" "$BAR_COLOR"
 
-    aligned_field "Time" \
+    aligned_field "Tiempo" \
         "$(seconds_to_hms "$PROCESSED_SECONDS") / $(seconds_to_hms "$RAW_DUR")"
 
-    aligned_field "Remaining" \
-        "$(seconds_to_hms "$ETA")   ·   Finishes $FINISH_TIME"
+    aligned_field "Restante" \
+        "$(seconds_to_hms "$ETA")   ·   Finaliza $FINISH_TIME"
 
-    aligned_field "Performance" \
-        "${FPS} FPS   ·   ${SPEED}   ·   Elapsed ${ELAPSED_HMS}"
+    aligned_field "Rendimiento" \
+        "${FPS} FPS   ·   ${SPEED}   ·   Transcurrido ${ELAPSED_HMS}"
 
-    ui_section "📋 QUEUE"
+    ui_section "📋 COLA"
     draw_queue
 
     ui_section "🎮 GPU"
 
-    aligned_field "Model" "$(truncate_text "$GPU_NAME" "$title_width")"
+    aligned_field "Modelo" "$(truncate_text "$GPU_NAME" "$title_width")"
     blank_line
 
     gpu_bar=$(create_progress_bar "$GPU_USAGE" "$meter_width")
@@ -611,18 +609,18 @@ draw_screen()
     blank_line
 
     aligned_progress_field \
-        "Encoder" "$enc_bar" "$GPU_ENCODER" "$ENC_COLOR"
+        "Codificador" "$enc_bar" "$GPU_ENCODER" "$ENC_COLOR"
     blank_line
 
     aligned_progress_field \
-        "Decoder" "$dec_bar" "$GPU_DECODER" "$DEC_COLOR"
+        "Decodificador" "$dec_bar" "$GPU_DECODER" "$DEC_COLOR"
     blank_line
 
-    aligned_field "Memory" \
+    aligned_field "Memoria" \
         "${GPU_MEM_USED} / ${GPU_MEM_TOTAL} MB"
 
-    aligned_field "Temperature" \
-        "${GPU_TEMP} °C   ·   ${GPU_POWER} W" \
+    aligned_field "Temperatura" \
+        "${GPU_TEMP} ºC   ·   ${GPU_POWER} W" \
         "$TEMP_COLOR"
 
     blank_line
@@ -635,9 +633,7 @@ draw_queue()
 {
     local file
     local display_name
-    local size
     local prefix
-    local suffix
     local available
     local cols
 
@@ -662,73 +658,15 @@ draw_queue()
     (( cols < 42 )) && cols=42
 
     ###########################################################################
-    # File currently being created in the single processing directory.
-    ###########################################################################
-
-    if [[ -d "$PROCESSING" ]]; then
-        while IFS= read -r -d '' file; do
-
-            TITLE=""
-            YEAR=""
-            MEDIA_TYPE="movie"
-            SEASON_NUMBER=""
-            EPISODE_NUMBER=""
-            normalize_filename "$file"
-
-            ((total += 1))
-
-            if (( shown >= max_shown )); then
-                if [[ "${MEDIA_TYPE:-movie}" == "episode" ]]; then
-                    ((hidden_episodes += 1))
-                else
-                    ((hidden_movies += 1))
-                fi
-                continue
-            fi
-
-            ((shown += 1))
-
-            display_name="${TITLE:-Unknown}"
-
-            if [[ -n "${YEAR:-}" ]]; then
-                display_name+=" (${YEAR})"
-            fi
-
-            if [[ "${MEDIA_TYPE:-movie}" == "episode" &&
-                  "${SEASON_NUMBER:-}" =~ ^[0-9]+$ &&
-                  "${EPISODE_NUMBER:-}" =~ ^[0-9]+$ ]]
-            then
-                episode_code=$(printf 'S%02dE%02d' \
-                    "$SEASON_NUMBER" \
-                    "$EPISODE_NUMBER")
-                display_name+=" ${episode_code}"
-            fi
-
-            size=$(du -h --apparent-size -- "$file" 2>/dev/null |
-                awk 'NR == 1 { print $1 }')
-
-            [[ -n "$size" ]] || size="unknown"
-
-            prefix=$(printf "%d. [ENC] " "$shown")
-            suffix="  ($size)"
-            available=$((cols - ${#prefix} - ${#suffix}))
-            (( available < 6 )) && available=6
-
-            display_name=$(truncate_text "$display_name" "$available")
-            clear_current_line
-            printf "%s%s%s\n" "$prefix" "$display_name" "$suffix"
-
-        done < <(
-            find "$PROCESSING" \
-                -maxdepth 1 \
-                -type f \
-                -print0 2>/dev/null |
-            sort -z
-        )
-    fi
-
-    ###########################################################################
-    # Files still waiting in the single incoming directory.
+    # Only source files still waiting in incoming belong to the queue.
+    #
+    # Files in an output disk's processing directory are either:
+    #   - the output currently being written by FFmpeg, or
+    #   - an incomplete leftover from an interrupted job.
+    #
+    # Neither case is a pending queue item, so processing is intentionally not
+    # scanned here. transcoder.sh removes interrupted partial outputs on clean
+    # shutdown and again at startup after an unclean stop or power loss.
     ###########################################################################
 
     mapfile -t files < <(
@@ -737,6 +675,8 @@ draw_queue()
 
     for file in "${files[@]}"; do
 
+        # The source of the active job remains in incoming until the encode has
+        # completed successfully. Do not display it a second time in the queue.
         if [[ -n "$current_file" &&
               "$(basename "$file")" == "$current_file" ]]
         then
@@ -763,7 +703,7 @@ draw_queue()
 
         ((shown += 1))
 
-        display_name="${TITLE:-Unknown}"
+        display_name="${TITLE:-Desconocida}"
 
         if [[ -n "${YEAR:-}" ]]; then
             display_name+=" (${YEAR:-})"
@@ -792,31 +732,31 @@ draw_queue()
 
     if (( total == 0 )); then
         clear_current_line
-        printf '%s\n' "No pending files."
+        printf '%s\n' "No hay archivos pendientes."
 
     elif (( hidden_movies > 0 || hidden_episodes > 0 )); then
         if (( hidden_movies == 1 )); then
-            summary="1 movie"
+            summary="1 película"
         elif (( hidden_movies > 1 )); then
-            summary="${hidden_movies} movies"
+            summary="${hidden_movies} películas"
         fi
 
         if (( hidden_episodes == 1 )); then
-            part="1 TV episode"
+            part="1 capítulo de serie"
         elif (( hidden_episodes > 1 )); then
-            part="${hidden_episodes} TV episodes"
+            part="${hidden_episodes} capítulos de serie"
         else
             part=""
         fi
 
         if [[ -n "$summary" && -n "$part" ]]; then
-            summary+=" and ${part}"
+            summary+=" y ${part}"
         elif [[ -n "$part" ]]; then
             summary="$part"
         fi
 
         clear_current_line
-        printf '…plus %s\n' "$summary"
+        printf '…y %s más\n' "$summary"
     fi
 
     TITLE="${current_title:-}"
@@ -825,7 +765,6 @@ draw_queue()
     SEASON_NUMBER="${current_season_number:-}"
     EPISODE_NUMBER="${current_episode_number:-}"
 }
-
 ###############################################################################
 # IDLE SCREEN
 ###############################################################################
@@ -836,10 +775,10 @@ draw_idle_screen()
 
     ui_title "🎬  FFmpeg Auto Transcoder"
 
-    ui_section "⏸ IDLE"
-    aligned_field "Status" "● Waiting for new media..." "$YELLOW"
+    ui_section "⏸ EN ESPERA"
+    aligned_field "Estado" "● Esperando nuevas películas..." "$YELLOW"
 
-    ui_section "📋 QUEUE"
+    ui_section "📋 COLA"
     draw_queue
 
     blank_line
@@ -858,15 +797,15 @@ draw_service_stopped()
 
     ui_title "🎬  FFmpeg Auto Transcoder"
 
-    ui_section "⛔ SERVICE"
+    ui_section "⛔ SERVICIO"
     aligned_field \
-        "Status" \
-        "● The transcoder service is stopped" \
+        "Estado" \
+        "● El servicio de transcodificación está detenido" \
         "$RED"
 
     blank_line
     clear_current_line
-    printf '%s\n' "Start it with:"
+    printf '%s\n' "Para iniciarlo:"
     blank_line
     clear_current_line
     printf '%s\n' "docker compose up -d ffmpeg-auto-transcoder"

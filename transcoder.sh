@@ -476,6 +476,7 @@ clear_monitor_state()
 {
     [[ -n "${PROGRESS_FILE:-}" ]] && rm -f -- "$PROGRESS_FILE"
     [[ -n "${EXTRA_FILE:-}" ]] && rm -f -- "$EXTRA_FILE"
+    [[ -n "${FFMPEG_ERROR_FILE:-}" ]] && rm -f -- "$FFMPEG_ERROR_FILE"
 }
 
 reset_job_state()
@@ -564,6 +565,7 @@ cleanup_stale_processing_files
 
 PROGRESS_FILE="${LOGS}/ffmpeg.progress"
 EXTRA_FILE="${LOGS}/ffmpeg.extra"
+FFMPEG_ERROR_FILE="${LOGS}/ffmpeg.error"
 
 while true
 do
@@ -985,9 +987,23 @@ log "Starting GPU transcoding..."
 
 launch_ffmpeg()
 {
+    local -a INPUT_ACCELERATION=()
+
+    # The first attempt uses NVDEC plus CUDA filters. The fallback deliberately
+    # decodes and filters on the CPU while still encoding with NVENC. Keeping
+    # -hwaccel_output_format cuda on the fallback would feed CUDA frames into a
+    # CPU filter graph and make the retry fail for the same reason as attempt 1.
+    if (( ATTEMPT == 1 )); then
+        INPUT_ACCELERATION=(
+            -hwaccel cuda
+            -hwaccel_output_format cuda
+        )
+    fi
+
+    : > "$FFMPEG_ERROR_FILE"
+
     ffmpeg -y -v error \
-        -hwaccel cuda \
-        -hwaccel_output_format cuda \
+        "${INPUT_ACCELERATION[@]}" \
         -i "$FILE" \
         -progress "$PROGRESS_FILE" \
         -vf "$FILTER" \
@@ -1001,9 +1017,23 @@ launch_ffmpeg()
         "${FFMPEG_EXTRA_FLAGS[@]}" \
         -c:a copy \
         -c:s copy \
-        "$OUTFILE" < /dev/null &
+        "$OUTFILE" \
+        < /dev/null \
+        2> "$FFMPEG_ERROR_FILE" &
 
     FFMPEG_PID=$!
+}
+
+log_ffmpeg_error_tail()
+{
+    local line
+
+    [[ -s "$FFMPEG_ERROR_FILE" ]] || return 0
+
+    log "Last FFmpeg error messages:"
+    while IFS= read -r line; do
+        log "FFmpeg: $line"
+    done < <(tail -n 20 "$FFMPEG_ERROR_FILE")
 }
 
 ###############################################################################
@@ -1041,8 +1071,11 @@ for ATTEMPT in 1 2; do
         FILTER="$CPU_FILTER"
         log "GPU filter failed. Retrying with CPU padding..."
         rm -f "$OUTFILE"
-        echo "progress=continue" > "$PROGRESS_FILE"
     fi
+
+    : > "$PROGRESS_FILE"
+    LAST_FRAME=0
+    LAST_ACTIVITY=$SECONDS
 
     JOB_ACTIVE=true
     launch_ffmpeg
@@ -1120,7 +1153,12 @@ EOF
         FFMPEG_EXIT=$?
     fi
 
-    (( FFMPEG_EXIT == 0 )) && break
+    if (( FFMPEG_EXIT == 0 )); then
+        break
+    fi
+
+    log "FFmpeg attempt $ATTEMPT failed with exit code $FFMPEG_EXIT."
+    log_ffmpeg_error_tail
 
 done
 
@@ -1133,7 +1171,7 @@ if [[ -f "$CANCEL_FLAG" ]]; then
     log "TIMEOUT: FFmpeg stalled while processing $BASENAME"
 
     rm -f "$CANCEL_FLAG"
-    rm -f "$OUTFILE" "$PROGRESS_FILE" "$EXTRA_FILE"
+    rm -f "$OUTFILE" "$PROGRESS_FILE" "$EXTRA_FILE" "$FFMPEG_ERROR_FILE"
 
     move_source_without_overwrite "$FILE" "$FAILED" >/dev/null || true
     reset_job_state
@@ -1143,7 +1181,7 @@ elif (( FFMPEG_EXIT != 0 )); then
 
     log "ERROR: Both transcoding attempts failed."
 
-    rm -f "$OUTFILE" "$PROGRESS_FILE" "$EXTRA_FILE"
+    rm -f "$OUTFILE" "$PROGRESS_FILE" "$EXTRA_FILE" "$FFMPEG_ERROR_FILE"
 
     move_source_without_overwrite "$FILE" "$FAILED" >/dev/null || true
     reset_job_state
@@ -1153,7 +1191,7 @@ elif [[ ! -s "$OUTFILE" ]]; then
 
     log "ERROR: Output file is missing or empty."
 
-    rm -f "$OUTFILE" "$PROGRESS_FILE" "$EXTRA_FILE"
+    rm -f "$OUTFILE" "$PROGRESS_FILE" "$EXTRA_FILE" "$FFMPEG_ERROR_FILE"
 
     move_source_without_overwrite "$FILE" "$FAILED" >/dev/null || true
     reset_job_state
@@ -1163,7 +1201,7 @@ else
 
     log "Transcoding completed successfully."
 
-    rm -f "$PROGRESS_FILE" "$EXTRA_FILE"
+    rm -f "$PROGRESS_FILE" "$EXTRA_FILE" "$FFMPEG_ERROR_FILE"
 
     # Create the Jellyfin folder only after a valid transcode exists.
     if ! mkdir -p -- "$DESTINATION_DIR"; then

@@ -7,7 +7,7 @@
 
 set -e
 
-VERSION="1.3.0"
+VERSION="1.3.2"
 
 DEFAULT_INSTALL_DIR="/opt/ffmpeg-auto-transcoder"
 
@@ -62,6 +62,10 @@ detect_system_timezone() {
     if [[ -z "$detected" && -L /etc/localtime ]]; then
         detected=$(readlink -f /etc/localtime 2>/dev/null || true)
         detected=${detected#*/usr/share/zoneinfo/}
+    fi
+
+    if [[ "$detected" != "UTC" && ! -e "/usr/share/zoneinfo/$detected" ]]; then
+        detected=""
     fi
 
     TIMEZONE=${detected:-UTC}
@@ -486,6 +490,7 @@ echo
 echo "Media library:"
 echo "  $MEDIA_DIR"
 echo
+
 echo "Application time zone:"
 echo "  $TIMEZONE"
 echo
@@ -498,6 +503,22 @@ echo
 echo "Web monitor:"
 echo
 echo "  http://SERVER_IP:9001"
+echo
+
+echo "⚠ IMPORTANT"
+echo
+echo "Edit the following file:"
+echo
+echo "  /etc/ffmpeg-auto-transcoder/config.sh"
+echo
+echo "and enter your API keys:"
+echo
+echo "  • TMDB_API_KEY"
+echo "  • OMDB_API_KEY"
+echo
+echo "Without these keys, the application"
+echo "will not be able to identify and"
+echo "organize your movies correctly."
 echo
 
 echo "Enjoy! 😊"

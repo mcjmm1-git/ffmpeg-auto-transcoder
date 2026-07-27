@@ -58,11 +58,24 @@ detect_media_type()
     SEASON_NUMBER=""
     EPISODE_NUMBER=""
 
-    # Compact Spanish chapter numbering:
+    # Compact Spanish chapter numbering. "Cap" must be a complete token
+    # followed directly by the compact number (optionally through separators),
+    # or the full word "Capitulo/Capítulo". This prevents movie titles such as
+    # "Capitán Veneno - 1943" from being mistaken for season 19, episode 43.
+    #
     # Silo [HDTV 720p][Cap.302] -> season 3, episode 02
     # Series Capitulo 1203.mkv   -> season 12, episode 03
-    if [[ "$NAME" =~ [Cc]ap[^0-9]*([0-9]{3,4})([^0-9]|$) ]]; then
-        local COMPACT_CODE="${BASH_REMATCH[1]}"
+    local COMPACT_CODE=""
+
+    if [[ "$NAME" =~ (^|[^[:alnum:]])[Cc]ap([.]|[[:space:]_-])*([0-9]{3,4})([^0-9]|$) ]]; then
+        COMPACT_CODE="${BASH_REMATCH[3]}"
+    elif [[ "$NAME" =~ (^|[^[:alnum:]])[Cc]apitulo[[:space:]._:-]*([0-9]{3,4})([^0-9]|$) ]]; then
+        COMPACT_CODE="${BASH_REMATCH[2]}"
+    elif [[ "$NAME" =~ (^|[^[:alnum:]])[Cc]apítulo[[:space:]._:-]*([0-9]{3,4})([^0-9]|$) ]]; then
+        COMPACT_CODE="${BASH_REMATCH[2]}"
+    fi
+
+    if [[ -n "$COMPACT_CODE" ]]; then
         local SEASON_DIGITS="${COMPACT_CODE:0:${#COMPACT_CODE}-2}"
         local EPISODE_DIGITS="${COMPACT_CODE: -2}"
 
@@ -114,9 +127,11 @@ detect_media_type()
 normalize_filename()
 {
     local FILE="$1"
-    local MATCHED_SUFFIX=""
     local METADATA_WORDS
+    local PRIMARY_TITLE=""
     local RELEASE_CUT_TAGS
+    local TITLE_AFTER_YEAR=""
+    local TITLE_BEFORE_YEAR=""
     local YEAR_MATCH=""
 
     detect_media_type "$FILE"
@@ -126,16 +141,70 @@ normalize_filename()
 
     YEAR=""
 
-    # Extract the first plausible release year wherever it appears in the
-    # filename. This supports forms such as:
+    # Extract the last plausible release year from the filename. Using the last
+    # one preserves titles that contain a year or number, for example:
+    #   1984 (1984)
+    #   2001: A Space Odyssey (1968)
+    #   Blade Runner 2049 (2017)
+    # It also supports forms such as:
     #   Movie (1953)
     #   Movie (Director, 1953)
     #   Movie (Director.1953)
     #   (1953) Movie
     #   Movie [1953]
-    if [[ "$TITLE" =~ (^|[^0-9])((18|19|20)[0-9]{2})([^0-9]|$) ]]; then
-        YEAR_MATCH="${BASH_REMATCH[2]}"
+    YEAR_MATCH=$(
+        printf '%s\n' "$TITLE" |
+            awk '
+                {
+                    for (position = 1; position <= length($0) - 3; position++) {
+                        candidate = substr($0, position, 4)
+                        before = position == 1 ? "" : substr($0, position - 1, 1)
+                        after = position + 4 > length($0) ? "" : substr($0, position + 4, 1)
+
+                        if (candidate ~ /^(18|19|20)[0-9]{2}$/ &&
+                            (before == "" || before ~ /[[:space:][:punct:]]/) &&
+                            (after == "" || after ~ /[[:space:][:punct:]]/)) {
+                            last_year = candidate
+                        }
+                    }
+                }
+                END {
+                    if (last_year != "") {
+                        print last_year
+                    }
+                }
+            '
+    )
+
+    if [[ -n "$YEAR_MATCH" ]]; then
         YEAR="$YEAR_MATCH"
+    fi
+
+    # For movies, a release year is normally the boundary between the actual
+    # title and uploader, director, cast, duration and release metadata. Prefer
+    # the text before the final year. If the filename starts with the year, use
+    # the text after it instead.
+    if [[ "$MEDIA_TYPE" == "movie" && -n "$YEAR" ]]; then
+        TITLE_BEFORE_YEAR="${TITLE%$YEAR*}"
+        TITLE_AFTER_YEAR="${TITLE##*$YEAR}"
+
+        PRIMARY_TITLE=$(printf '%s\n' "$TITLE_BEFORE_YEAR" |
+            tr '._' '  ' |
+            sed -E \
+                -e 's/[[:space:]_.-]*\([^()]*$//' \
+                -e 's/[[:space:]_.-]*\[[^][]*$//' \
+                -e ':remove_trailing_block' \
+                -e 's/[[:space:]_.-]*\([^()]*\)[[:space:]_.-]*$//; t remove_trailing_block' \
+                -e 's/[[:space:]_.-]*\[[^][]*\][[:space:]_.-]*$//; t remove_trailing_block' \
+                -e 's/^[[:space:]_.-]+//' \
+                -e 's/[[:space:]_.-]+$//' \
+                -e 's/[[:space:]]+/ /g')
+
+        if [[ "$PRIMARY_TITLE" =~ [[:alnum:]] ]]; then
+            TITLE="$PRIMARY_TITLE"
+        else
+            TITLE="$TITLE_AFTER_YEAR"
+        fi
     fi
 
     # Remove season/episode code and everything following it.
@@ -167,6 +236,30 @@ normalize_filename()
             sed -E "s/\([^)]*${YEAR}[^)]*\)//g")
     fi
 
+    # With no release year, use only conservative structural clues. A trailing
+    # dash followed exclusively by language/subtitle labels is metadata. If the
+    # remaining final dot introduces three or more comma-separated cast names,
+    # discard that cast suffix as well. Dotted release names without this cast
+    # pattern are left untouched and continue through the normal separator pass.
+    if [[ "$MEDIA_TYPE" == "movie" && -z "$YEAR" ]]; then
+        local LANGUAGE_WORDS
+        local CAST_PREFIX
+        local CAST_SUFFIX
+        local CAST_COMMAS
+
+        LANGUAGE_WORDS='spanishsubs?|englishsubs?|spanish|castellano|english|latino|dual|multi|esp|eng|subs?|subtitles?|subbed|dubbed'
+        TITLE=$(printf '%s\n' "$TITLE" |
+            sed -E "s/[[:space:]]*[-–—]+[[:space:]]*(${LANGUAGE_WORDS})([[:space:]_.-]+(${LANGUAGE_WORDS}))*[[:space:]]*$//I")
+
+        CAST_PREFIX="${TITLE%.*}"
+        CAST_SUFFIX="${TITLE##*.}"
+        CAST_COMMAS="${CAST_SUFFIX//[^,]/}"
+
+        if [[ "$CAST_PREFIX" != "$TITLE" && ${#CAST_COMMAS} -ge 2 ]]; then
+            TITLE="$CAST_PREFIX"
+        fi
+    fi
+
     # Replace common filename separators with spaces.
     TITLE=$(printf '%s
 ' "$TITLE" |
@@ -186,16 +279,18 @@ normalize_filename()
 ' "$TITLE" |
         sed -E "s/(^|[[:space:]_-])(${RELEASE_CUT_TAGS})([[:space:]_-]|$).*$//I")
 
-    # Remove common trailing uploader/release-group credits.
+    # Remove a trailing site/domain credit. Do not strip generic "by NAME" or
+    # "por NAME" suffixes here: both can be part of a genuine movie title
+    # (for example "Stand by Me" or "La vida por delante"). When a release
+    # year is present, the title boundary logic above has already discarded the
+    # uploader section safely.
     TITLE=$(printf '%s
 ' "$TITLE" |
         sed -E \
-            -e 's/[[:space:]]+[Bb][Yy][[:space:]]+[^[:space:]]+[[:space:]]*$//' \
-            -e 's/[[:space:]]+[Pp]or[[:space:]]+[^[:space:]]+[[:space:]]*$//' \
             -e 's/[[:space:]]*\([^)]*\.(com|org|net|es)\)[[:space:]]*$//I')
 
     # Remove a bare year left outside brackets/parentheses.
-    if [[ -n "$YEAR" ]]; then
+    if [[ -n "$YEAR" && "$TITLE" != "$YEAR" ]]; then
         TITLE=$(printf '%s
 ' "$TITLE" |
             sed -E "s/(^|[[:space:]_.-])${YEAR}([[:space:]_.-]|$)/ /g")
@@ -206,6 +301,7 @@ normalize_filename()
 ' "$TITLE" |
         sed -E \
             -e 's/[[:space:]]*[-–—]+[[:space:]]*/ - /g' \
+            -e 's/^[[:space:]_.-]*[])]+[[:space:]_.-]*//' \
             -e 's/[[:space:]_-]+$//' \
             -e 's/^[[:space:]_-]+//' \
             -e 's/[[:space:]]+/ /g' \

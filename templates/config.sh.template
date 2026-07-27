@@ -18,6 +18,10 @@
 
 MEDIA_DIR="__MEDIA_DIR__"
 
+###############################################################################
+# TIME ZONE
+###############################################################################
+
 # Application time zone. This affects timestamps and ETA/finish-time display
 # without changing the server's system-wide time zone.
 TIMEZONE="__TIMEZONE__"
