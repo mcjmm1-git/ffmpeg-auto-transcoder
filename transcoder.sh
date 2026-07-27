@@ -857,6 +857,15 @@ EOF
         continue
     fi
 
+    # Keep the exact input stream index so FFmpeg maps the real movie video,
+    # not an embedded cover image. Audio and subtitle streams are mapped below.
+    VIDEO_INDEX=$(jq -r '.index // empty' <<<"$VIDEO_STREAM")
+    if [[ ! "$VIDEO_INDEX" =~ ^[0-9]+$ ]]; then
+        log "ERROR: Could not determine the primary video stream index in $BASENAME. Skipping..."
+        move_source_without_overwrite "$FILE" "$FAILED" >/dev/null || true
+        continue
+    fi
+
     WIDTH=$(jq -r '.width // 0' <<<"$VIDEO_STREAM")
     HEIGHT=$(jq -r '.height // 0' <<<"$VIDEO_STREAM")
     [[ "$WIDTH" =~ ^[0-9]+$ ]] || WIDTH=0
@@ -1005,6 +1014,12 @@ launch_ffmpeg()
     ffmpeg -y -v error \
         "${INPUT_ACCELERATION[@]}" \
         -i "$FILE" \
+        -map "0:${VIDEO_INDEX}" \
+        -map 0:a? \
+        -map 0:s? \
+        -map 0:t? \
+        -map_metadata 0 \
+        -map_chapters 0 \
         -progress "$PROGRESS_FILE" \
         -vf "$FILTER" \
         -c:v hevc_nvenc \
@@ -1017,6 +1032,7 @@ launch_ffmpeg()
         "${FFMPEG_EXTRA_FLAGS[@]}" \
         -c:a copy \
         -c:s copy \
+        -c:t copy \
         "$OUTFILE" \
         < /dev/null \
         2> "$FFMPEG_ERROR_FILE" &
